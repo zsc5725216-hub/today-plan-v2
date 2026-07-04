@@ -908,16 +908,18 @@ function toggleChat(){
     setTimeout(()=>{document.getElementById('chat-input').focus();},300);
   }
 }
-// iOS keyboard handling
+// iOS keyboard handling — adjust input position when keyboard appears
 if(window.visualViewport){
   window.visualViewport.addEventListener('resize',()=>{
     const overlay=document.getElementById('chat-overlay');
     if(overlay && overlay.classList.contains('open')){
-      const msgs=document.getElementById('chat-msgs');
-      if(msgs){
-        msgs.style.paddingBottom=(window.visualViewport.height - window.visualViewport.offsetTop + 20)+'px';
-        msgs.scrollTop=msgs.scrollHeight;
+      const inputWrap=overlay.querySelector('.chat-input-wrap');
+      if(inputWrap){
+        const kbHeight=window.innerHeight - window.visualViewport.height;
+        inputWrap.style.paddingBottom=kbHeight>0?(kbHeight+12)+'px':'';
       }
+      const msgs=document.getElementById('chat-msgs');
+      if(msgs) msgs.scrollTop=msgs.scrollHeight;
     }
   });
 }
