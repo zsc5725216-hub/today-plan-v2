@@ -505,6 +505,15 @@ function render(key){
   html += `</div></div>`; // close s-ci
 
   // === Settings (API key) ===
+  html += `<div class="card" style="margin-top:10px"><h3>👤 身体数据</h3>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">体重kg</label><input id="prof-weight" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().weight||115)}" step="0.1"></div>
+      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">目标kg</label><input id="prof-goal" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().goalWeight||90)}" step="0.1"></div>
+      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">体脂%</label><input id="prof-bf" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().goalBf||18)}"></div>
+    </div>
+    <button onclick="saveProfileUI()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;width:100%;font-family:inherit">💾 保存身体数据</button>
+    <div style="font-size:10px;color:var(--sub);margin-top:4px">AI会根据这些数据自动调整方案。也可以用 /profile weight 112 命令更新。</div>
+  </div>`;
   html += `<div class="card api-settings" id="api-settings-card" style="margin-top:10px;position:relative"><button class="api-toggle" onclick="showApiSettings()" title="API设置" id="api-toggle-btn" style="display:none">⚙️</button><h3>⚙️ DeepSeek API</h3><div class="settings-row"><input type="password" id="apikey-input" placeholder="输入DeepSeek API Key" value="${localStorage.getItem('ds-key')||''}" placeholder="输入你的DeepSeek API Key"><button onclick="saveApiKey()">保存</button></div><div style="font-size:11px;color:var(--sub);margin-top:6px">获取: platform.deepseek.com → API Keys</div></div>`;
 
   document.getElementById('ct').innerHTML = html;
@@ -531,6 +540,23 @@ function saveChecks(c){localStorage.setItem('checks',JSON.stringify(c))}
 // ===================== TRAINING LOG (localStorage) =====================
 function loadTrainingLogs(){try{return JSON.parse(localStorage.getItem('training-logs')||'{}')}catch(e){return{}}}
 function saveTrainingLogs(logs){localStorage.setItem('training-logs',JSON.stringify(logs))}
+// ===================== USER PROFILE (localStorage) =====================
+function loadProfile(){try{return JSON.parse(localStorage.getItem('user-profile')||'{}')}catch(e){return{}}}
+function saveProfile(p){localStorage.setItem('user-profile',JSON.stringify(p))}
+function getDefaultProfile(){return{weight:115,height:187,age:23,goalWeight:90,goalBf:18,updated:getTodayStr()}}
+function buildProfileContext(){
+  const p=loadProfile();
+  if(!p.weight){const d=getDefaultProfile();saveProfile(d);return buildProfileContext();}
+  return `【基本信息】男，${p.age||23}岁，${p.height||187}cm，${p.weight}kg，目标${p.goalWeight||90}kg/体脂${p.goalBf||18}%。`;
+}
+function updateProfile(key,val){
+  const p=loadProfile();
+  const num=parseFloat(val);
+  if(!isNaN(num))p[key]=num;
+  else if(val)p[key]=val;
+  p.updated=getTodayStr();
+  saveProfile(p);
+}
 function logExercise(){
   const sel=document.getElementById('log-exercise');
   const name=sel.value;if(!name)return;
@@ -576,6 +602,17 @@ function renderTrainingLog(){
 // ===================== WEIGHT TRACKING (localStorage) =====================
 function loadWeightLogs(){try{return JSON.parse(localStorage.getItem('weight-logs')||'{}')}catch(e){return{}}}
 function saveWeightLogs(logs){localStorage.setItem('weight-logs',JSON.stringify(logs))}
+
+function saveProfileUI(){
+  const w=parseFloat(document.getElementById('prof-weight').value);
+  const g=parseFloat(document.getElementById('prof-goal').value);
+  const b=parseFloat(document.getElementById('prof-bf').value);
+  if(w)updateProfile('weight',w);
+  if(g)updateProfile('goalWeight',g);
+  if(b)updateProfile('goalBf',b);
+  alert('身体数据已保存！AI将在下次对话中使用最新数据。');
+}
+
 function logWeight(){
   const input=document.getElementById('weight-input');
   const val=parseFloat(input.value);
@@ -586,6 +623,7 @@ function logWeight(){
   saveWeightLogs(logs);
   input.value='';
   renderWeightLog();
+  triggerAnalysis('体重更新:'+val+'kg');
 }
 function renderWeightLog(){
   const container=document.getElementById('weight-mini-list');
@@ -632,6 +670,8 @@ function logMood(mood){
   logs[today]=mood;
   saveMoodLogs(logs);
   renderMoodButtons();
+  const moodNames={good:'精力好',ok:'一般',tired:'很累'};
+  triggerAnalysis('心情更新:'+moodNames[mood]);
 }
 function renderMoodButtons(){
   const today=getTodayStr();
@@ -663,8 +703,10 @@ function parseAICommand(text){
     }
   });
   savePlanOverrides(overrides);
+  saveDecision('训练调整',results.map(r=>r.name+' → '+r.sets).join(', '));
   // Re-render current day to reflect changes
   if(currentKey)render(currentKey);
+  triggerAnalysis('训练记录更新');
   return results;
 }
 
@@ -692,6 +734,23 @@ function clearAllOverrides(){
 // ===================== DIET OVERRIDES (localStorage) =====================
 function loadDietOverrides(){try{return JSON.parse(localStorage.getItem('diet-overrides')||'{}')}catch(e){return{}}}
 function saveDietOverrides(ov){localStorage.setItem('diet-overrides',JSON.stringify(ov))}
+// ===================== AI DECISION MEMORY (localStorage) =====================
+function loadDecisions(){try{return JSON.parse(localStorage.getItem('ai-decisions')||'[]')}catch(e){return[]}}
+function saveDecision(type,detail){
+  const decisions=loadDecisions();
+  decisions.push({time:new Date().toISOString(),type,detail});
+  if(decisions.length>50)decisions.splice(0,decisions.length-50);
+  localStorage.setItem('ai-decisions',JSON.stringify(decisions));
+}
+function getDecisionSummary(){
+  const decisions=loadDecisions();
+  if(decisions.length===0)return'';
+  const recent=decisions.slice(-10);
+  return recent.map(d=>{
+    const t=d.time.slice(0,10);
+    return `${t} [${d.type}]: ${d.detail}`;
+  }).join('\n');
+}
 
 function parseDietCommand(text){
   const results=[];
@@ -704,6 +763,7 @@ function parseDietCommand(text){
     if(cals>0&&prot>0){
       const overrides={calories:cals,protein:prot,note};
       saveDietOverrides(overrides);
+      saveDecision('饮食调整',cals+'kcal 蛋白'+prot+'g: '+note);
       results.push(overrides);
     }
   }
@@ -805,9 +865,14 @@ function saveApiKey(){
 }
 
 // ===================== AI CHAT =====================
-const SYSTEM_PROMPT = `你是减脂备考私人助手。用户完整档案：
+function buildSystemPrompt(){
+  const p=loadProfile();
+  if(!p.weight){const d=getDefaultProfile();saveProfile(d);}
+  const profile=buildProfileContext();
+  return `你是减脂备考私人助手。用户完整档案：
 
-【基本信息】男，23岁，187cm，115kg，目标90kg/体脂18%。
+${profile}
+
 
 【考试】数二+英二+408计算机考研，12月二战。通勤自习室30分钟。
 
@@ -858,6 +923,100 @@ const SYSTEM_PROMPT = `你是减脂备考私人助手。用户完整档案：
 
 【综合判断】
 每次对话时查看用户的体重趋势(最近2周)、心情趋势(最近1周)、训练日志(最新一次)，给出综合建议。如有需要，用 /update 或 /diet 命令直接修改方案。`;
+}
+
+
+
+// ===================== AUTO ANALYSIS =====================
+let analysisTimeout=null;
+function triggerAnalysis(reason){
+  const key=localStorage.getItem('ds-key');
+  if(!key)return;
+  if(analysisTimeout)clearTimeout(analysisTimeout);
+  analysisTimeout=setTimeout(()=>runSilentAnalysis(reason,key),1500);
+}
+async function runSilentAnalysis(reason,key){
+  try{
+    const ctx=buildDataContext();
+    const decisions=getDecisionSummary();
+    const dc=decisions?'【近期AI决策】\n'+decisions:'';
+    const msgs=[
+      {role:'system',content:buildSystemPrompt()},
+      {role:'user',content:`[自动分析触发: ${reason}]${ctx}${dc}`}
+    ];
+    const resp=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'deepseek-chat',messages:msgs,max_tokens:400,temperature:0.7})
+    });
+    const data=await resp.json();
+    if(data.error)return;
+    const reply=data.choices?.[0]?.message?.content||'';
+    if(!reply)return;
+    // Apply any commands
+    const applied=[];
+    const updates=parseAICommand(reply);
+    if(updates.length>0)applied.push(...updates.map(u=>u.name+' → '+u.sets));
+    const diets=parseDietCommand(reply);
+    if(diets.length>0)applied.push('饮食调整:'+diets[0].calories+'kcal');
+    // Save decision
+    if(applied.length>0){
+      saveDecision('auto-'+reason,applied.join(', '));
+      // Re-render to show changes
+      if(currentKey)render(currentKey);
+      renderDietOverrideAlert();
+    }
+    // Show notification banner
+    showInsightBanner(reply,applied.length>0);
+  }catch(e){}
+}
+function showInsightBanner(text,hasChanges){
+  const existing=document.getElementById('insight-banner');
+  if(existing)existing.remove();
+  const banner=document.createElement('div');
+  banner.id='insight-banner';
+  banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:300;background:var(--card);padding:12px 16px;font-size:13px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.15);border-bottom:2px solid var(--accent);animation:slideDown .3s ease;max-width:500px;margin:0 auto;border-radius:0 0 14px 14px;';
+  const cleanText=text.replace(/\/update\s+\S+\s+\S+\s+.+/g,'').replace(/\/diet\s+calories\s+\d+\s+protein\s+\d+\s+.+/g,'').trim();
+  banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:8px"><span>🤖</span><div><div style="font-weight:600;margin-bottom:4px">AI 自动分析</div><div>'+cleanText.slice(0,300).replace(/\n/g,'<br>')+(cleanText.length>300?'...':'')+'</div>'+(hasChanges?'<div style="margin-top:6px;font-size:11px;color:var(--accent);font-weight:600">✅ 已自动应用方案调整</div>':'')+'</div><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--sub);padding:0;line-height:1">✕</button></div>';
+  document.body.prepend(banner);
+  setTimeout(()=>{if(banner.parentElement)banner.remove();},12000);
+}
+function buildDataContext(){
+  let ctx='';
+  const todayLogs=loadTrainingLogs();
+  const today=getTodayStr();
+  const todayData=todayLogs[today];
+  if(todayData&&todayData.exercises&&todayData.exercises.length>0){
+    ctx+='【今日训练】'+todayData.exercises.map(e=>`${e.name}: ${e.weight}kg ${e.reps}次×${e.sets}组 RPE${e.rpe} ${e.notes||''}`).join(', ');
+  }
+  const weightLogs=loadWeightLogs();
+  const wDates=Object.keys(weightLogs).sort().slice(-14);
+  if(wDates.length>0){
+    ctx+='【体重趋势(2周)】'+wDates.map(d=>d.slice(5)+':'+weightLogs[d]+'kg').join(' → ');
+    if(wDates.length>=2){
+      const oldW=weightLogs[wDates[0]];
+      const newW=weightLogs[wDates[wDates.length-1]];
+      const days=(new Date(wDates[wDates.length-1])-new Date(wDates[0]))/(864e5);
+      ctx+=' 总变化'+(newW-oldW>=0?'+':'')+Math.round((newW-oldW)*10)/10+'kg ('+days+'天)';
+    }
+  }
+  const moodLogs=loadMoodLogs();
+  const mDates=Object.keys(moodLogs).sort().slice(-7);
+  if(mDates.length>0){
+    const moodMap={good:'😄',ok:'😐',tired:'😫'};
+    ctx+='【心情(1周)】'+mDates.map(d=>d.slice(5)+':'+moodMap[moodLogs[d]]).join(', ');
+  }
+  const ov=loadPlanOverrides();
+  if(Object.keys(ov).length>0)ctx+='【当前覆盖】'+Object.keys(ov).map(k=>ov[k].skip?`${k}:跳过`: `${k}:${ov[k].sets}`).join(', ');
+  const dov=loadDietOverrides();
+  if(dov&&dov.calories)ctx+='【当前饮食】'+dov.calories+'kcal 蛋白'+dov.protein+'g';
+  return ctx;
+}
+// Add slideDown animation
+const animStyle=document.createElement('style');
+animStyle.textContent='@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}';
+document.head.appendChild(animStyle);
+
 
 // ===================== CHAT HISTORY (localStorage) =====================
 const CHAT_HISTORY_KEY = 'chat-history';
@@ -897,6 +1056,20 @@ function initApiKey(){
   if(!localStorage.getItem('ds-key')){
     localStorage.setItem('ds-key', '');
   }
+}
+
+
+function showProactiveInsights(){
+  const msgs=document.getElementById('chat-msgs');
+  const existing=msgs.querySelector('.chat-insight');
+  if(existing)return; // only show once per open
+  const ctx=buildDataContext();
+  if(!ctx)return;
+  const insight=document.createElement('div');
+  insight.className='chat-msg ai chat-insight';
+  insight.style.cssText='background:var(--bg);border:1px solid var(--accent);border-radius:12px;font-size:12px;padding:8px 10px;margin-bottom:4px;opacity:0.85';
+  insight.innerHTML='<span style="font-size:14px">🧠</span> AI 正在分析你的数据... <span style="color:var(--sub)">输入问题或直接发送获取建议</span>';
+  msgs.prepend(insight);
 }
 
 function toggleChat(){
@@ -983,7 +1156,7 @@ async function sendMsg(){
   
   const history = loadChatHistory();
   const apiMessages = [
-    {role:'system', content:SYSTEM_PROMPT},
+    {role:'system', content:buildSystemPrompt()},
     ...history.slice(-(MAX_HISTORY_ROUNDS * 2)),
     {role:'user', content:msg + logCtx + ovCtx}
   ];
