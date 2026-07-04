@@ -624,6 +624,7 @@ function logWeight(){
   const logs=loadWeightLogs();
   logs[today]=Math.round(val*10)/10;
   saveWeightLogs(logs);
+  updateProfile('weight',val);
   input.value='';
   renderWeightLog();
   triggerAnalysis('体重更新:'+val+'kg');
