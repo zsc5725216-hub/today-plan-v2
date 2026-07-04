@@ -161,6 +161,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Ne
 .log-entry{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
 .log-entry:last-child{border-bottom:none}
 .log-entry .le-del{color:var(--red);cursor:pointer;font-size:14px;margin-left:8px;background:none;border:none}
+
+.analysis-entry{padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.analysis-entry:last-child{border-bottom:none}
+.analysis-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.analysis-detail{color:var(--accent);font-weight:500}
+.analysis-text{color:var(--sub);font-size:11px;line-height:1.5;margin-top:4px;padding:6px 8px;background:var(--bg);border-radius:6px}
 .log-empty{font-size:12px;color:var(--sub);text-align:center;padding:12px 0}
 
 /* AI Command Highlight */
@@ -505,6 +511,24 @@ function render(key){
   }else{
     html += `<div class="log-empty">💤 今天休息日，无需训练记录</div>`;
   }
+  // AI Analysis Log
+  html += `<div class="card"><h3>🧠 AI 分析记录</h3><div id="analysis-log-list">`;
+  const decisions=loadDecisions().slice(-10).reverse();
+  if(decisions.length===0){
+    html += `<div class="log-empty">暂无AI分析记录。记录体重/心情或与AI对话后自动生成。</div>`;
+  }else{
+    decisions.forEach(d=>{
+      const t=new Date(d.time);
+      const timeStr=(t.getMonth()+1)+'/'+t.getDate()+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+      const isAuto=d.type.startsWith('auto');
+      const typeIcon=isAuto?'🤖':{'训练调整':'🏋️','饮食调整':'🍽️'}[d.type]||'📋';
+      const typeLabel=isAuto?'自动分析':{'训练调整':'训练调整','饮食调整':'饮食调整'}[d.type]||d.type;
+      html += `<div class="analysis-entry"><div class="analysis-head"><span>${typeIcon} <b>${typeLabel}</b></span><span style="color:var(--sub);font-size:10px">${timeStr}</span></div><div class="analysis-detail">${d.detail}</div>`;
+      if(d.text)html += `<div class="analysis-text">${d.text.slice(0,200).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>`;
+      html += `</div>`;
+    });
+  }
+  html += `</div></div>`;
   html += `</div></div>`; // close s-ci
 
   // === Settings (API key) ===
@@ -702,9 +726,15 @@ function loadDietOverrides(){try{return JSON.parse(localStorage.getItem('diet-ov
 function saveDietOverrides(ov){localStorage.setItem('diet-overrides',JSON.stringify(ov))}
 // ===================== AI DECISION MEMORY (localStorage) =====================
 function loadDecisions(){try{return JSON.parse(localStorage.getItem('ai-decisions')||'[]')}catch(e){return[]}}
-function saveDecision(type,detail){
+function saveDecision(type,detail,text){
   const decisions=loadDecisions();
-  decisions.push({time:new Date().toISOString(),type,detail});
+  // Clean text: remove /update and /diet command lines
+  let cleanText='';
+  if(text){
+    cleanText=text.replace(/\/update\s+\S+\s+\S+\s+.+/g,'').replace(/\/diet\s+calories\s+\d+\s+protein\s+\d+\s+.+/g,'').replace(/
+{3,}/g,'\n\n').trim();
+  }
+  decisions.push({time:new Date().toISOString(),type,detail,text:cleanText});
   if(decisions.length>50)decisions.splice(0,decisions.length-50);
   localStorage.setItem('ai-decisions',JSON.stringify(decisions));
 }
@@ -926,15 +956,19 @@ async function runSilentAnalysis(reason,key){
     if(updates.length>0)applied.push(...updates.map(u=>u.name+' → '+u.sets));
     const diets=parseDietCommand(reply);
     if(diets.length>0)applied.push('饮食调整:'+diets[0].calories+'kcal');
-    // Save decision
+    // Save decision with analysis text
     if(applied.length>0){
-      saveDecision('auto-'+reason,applied.join(', '));
+      saveDecision('auto-'+reason,applied.join(', '),reply);
       // Re-render to show changes
       if(currentKey)render(currentKey);
       renderDietOverrideAlert();
     }
     // Show notification banner
     showInsightBanner(reply,applied.length>0);
+    // Always save analysis text even without commands
+    if(applied.length===0&&reply){
+      saveDecision('auto-'+reason,'分析完成',reply);
+    }
   }catch(e){}
 }
 function showInsightBanner(text,hasChanges){
