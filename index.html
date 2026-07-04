@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="今日安排">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231a3c6e' width='100' height='100' rx='20'/><text x='50' y='70' text-anchor='middle' fill='white' font-size='52' font-family='system-ui'>📋</text></svg>">
+<title>今日安排</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--sub:#86868b;--accent:#1a3c6e;--red:#c0504d;--orange:#e36c09;--blue:#2b579a;--purple:#7030a0;--green:#548235;--border:#e5e5ea;--shadow:0 1px 3px rgba(0,0,0,.08);--radius:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--text:#f5f5f7;--sub:#98989d;--border:#38383a;--shadow:0 1px 3px rgba(0,0,0,.3)}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system;touch-action:manipulation;-webkit-text-size-adjust:100%,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:env(safe-area-inset-top) 14px 50px;-webkit-font-smoothing:antialiased;max-width:500px;margin:0 auto;min-height:100dvh}
+.header{text-align:center;padding:16px 0 8px}
+.header .date{font-size:12px;color:var(--sub);font-weight:500;letter-spacing:.5px}
+.header h1{font-size:26px;font-weight:700;margin-top:3px;letter-spacing:-.5px}
+.day-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;margin-top:6px}
+.badge-training{background:#e8f0fe;color:var(--blue)}
+.badge-rest{background:#e8f5e9;color:var(--green)}
+.badge-fullrest{background:#fce4ec;color:#c62828}
+@media(prefers-color-scheme:dark){.badge-training{background:#1a3c6e33;color:#7aa2f7}.badge-rest{background:#2e4a2e33;color:#81c784}.badge-fullrest{background:#4a1a1a33;color:#ef9a9a}}
+
+/* Day nav */
+.dnav{display:flex;gap:3px;overflow-x:auto;padding:8px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;justify-content:center}
+.dnav::-webkit-scrollbar{display:none}
+.dnav button{flex:0 0 auto;padding:7px 12px;border-radius:18px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .15s}
+.dnav button.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+
+/* Tab buttons */
+.tabs{display:flex;gap:6px;padding:0 0 14px;justify-content:center}
+.tabs button{flex:1;max-width:90px;padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabs button .t-icon{font-size:18px}
+.tabs button.active{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(26,60,110,.25)}
+.tabs button.active .t-icon{filter:brightness(2)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:15px;margin-bottom:10px;box-shadow:var(--shadow)}
+.card h3{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+
+/* Timeline */
+.tl{position:relative;padding-left:14px}
+.tl::before{content:'';position:absolute;left:0;top:3px;bottom:3px;width:2px;background:var(--border);border-radius:1px}
+.ti{position:relative;padding:0 0 10px 14px}
+.ti:last-child{padding-bottom:0}
+.ti::before{content:'';position:absolute;left:-19px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.tt{font-size:11px;color:var(--sub);font-weight:600;margin-bottom:1px}
+.ta{font-size:13px;font-weight:500}
+.tn{font-size:11px;color:var(--sub);margin-top:1px}
+
+/* Exercise */
+.ex{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border)}
+.ex:last-child{border-bottom:none}
+.exn{font-size:13px;font-weight:500;flex:1}
+.exs{font-size:12px;color:var(--accent);font-weight:600;white-space:nowrap;margin-left:8px}
+.exnote{font-size:11px;color:var(--sub);margin-top:1px}
+
+/* Meal */
+.meal{padding:9px 0;border-bottom:1px solid var(--border)}
+.meal:last-child{border-bottom:none}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.mn{font-size:13px;font-weight:600}
+.mt{font-size:11px;color:var(--sub)}
+.mo{font-size:12px;color:var(--text);line-height:1.5}
+.ml{font-size:10px;color:var(--green);font-weight:500;margin-left:5px}
+
+/* Rehab checkboxes */
+.rh{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.rh:last-child{border-bottom:none}
+.rh input[type=checkbox]{width:19px;height:19px;accent-color:var(--accent);flex-shrink:0}
+.rh label{font-size:13px;cursor:pointer;line-height:1.4}
+
+/* Study blocks */
+.sb{padding:8px 10px;border-radius:8px;margin-bottom:5px;background:#f0f4ff}
+.sbs{font-size:13px;font-weight:600}
+.sbt{font-size:11px;color:var(--sub);margin-top:1px}
+.sbp{font-size:10px;color:var(--blue);margin-top:1px;font-style:italic}
+@media(prefers-color-scheme:dark){.sb{background:#1a2a4a33}}
+
+/* Tips */
+.tips{font-size:11px;color:var(--sub);line-height:1.5;padding:9px 12px;border-radius:8px;background:#fff9e6}
+.tips strong{color:var(--orange)}
+@media(prefers-color-scheme:dark){.tips{background:#2a2410}}
+
+/* Grocery */
+.grocery-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+.grocery-table td,.grocery-table th{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left}
+.grocery-table th{font-size:11px;color:var(--sub);font-weight:600;background:var(--bg)}
+.grocery-table .cat{background:#f0f4ff;font-weight:600;font-size:12px}
+@media(prefers-color-scheme:dark){.grocery-table .cat{background:#1a2a4a33}}
+
+.sep{padding:5px 0;font-size:11px;color:var(--sub);font-weight:600;margin-top:3px}
+.cn{font-size:11px;color:var(--sub);text-align:center;margin-top:14px;padding:10px;border-radius:8px;background:var(--card)}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;margin-right:4px}
+.tag-math{background:#e3f2fd;color:#1565c0}
+.tag-eng{background:#fce4ec;color:#c62828}
+.tag-408{background:#e8f5e9;color:#2e7d32}
+.tag-pol{background:#fff3e0;color:#e65100}
+@media(prefers-color-scheme:dark){.tag-math{background:#0d47a133}.tag-eng{background:#b71c1c33}.tag-408{background:#1b5e2033}.tag-pol{background:#e6510033}}
+
+.hidden{display:none!important}
+
+/* Check-in */
+.ci-grid{display:flex;gap:10px;flex-wrap:wrap}
+.ci-item{flex:1;min-width:80px;max-width:110px;background:var(--card);border-radius:12px;padding:12px 10px;text-align:center;cursor:pointer;border:2px solid var(--border);transition:all .2s;user-select:none}
+.ci-item.done{border-color:#4caf50;background:#e8f5e9}
+.ci-item .ci-icon{font-size:24px;margin-bottom:6px}
+.ci-item .ci-label{font-size:12px;font-weight:600;color:var(--text)}
+.ci-item .ci-check{font-size:16px;color:#4caf50;opacity:0;transition:opacity .2s}
+.ci-item.done .ci-check{opacity:1}
+@media(prefers-color-scheme:dark){.ci-item.done{background:#1b3a1b33;border-color:#4caf50}}
+.wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px;text-align:center;font-size:11px}
+.wk-grid .wk-dot{width:22px;height:22px;border-radius:50%;margin:3px auto;background:var(--border)}
+.wk-grid .wk-dot.done{background:#4caf50}
+.wk-grid .wk-label{color:var(--sub);font-size:10px}
+
+/* Stats */
+.stat-row{display:flex;justify-content:space-around;padding:12px 0}
+.stat-num{font-size:28px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:11px;color:var(--sub);margin-top:2px}
+.stat-unit{font-size:13px;color:var(--sub)}
+
+/* Chat */
+.chat-fab{position:fixed;bottom:24px;right:16px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(26,60,110,.35);z-index:100;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.chat-fab:active{transform:scale(.9)}
+.chat-overlay{position:fixed;top:0;left:0;right:0;height:100%;height:100dvh;background:var(--bg);z-index:200;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s ease;overflow:hidden;overscroll-behavior:none}
+.chat-overlay.open{transform:translateY(0)}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);padding-top:calc(14px + env(safe-area-inset-top))}
+.chat-header h2{font-size:17px;font-weight:600}
+.chat-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);padding:4px}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.chat-msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.ai{align-self:flex-start;background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px}
+.chat-msg.ai pre{font-size:12px;overflow-x:auto;background:var(--bg);padding:8px;border-radius:8px;margin:6px 0}
+.chat-msg.ai code{font-size:12px}
+.chat-input-wrap{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);padding-bottom:calc(12px + env(safe-area-inset-bottom));flex-shrink:0;background:var(--bg)}
+.chat-input-wrap input{flex:1;padding:10px 14px;border-radius:20px;font-size:16px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.chat-input-wrap button{width:40px;height:40px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Settings */
+.settings-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.settings-row input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:inherit}
+.settings-row button{padding:8px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;white-space:nowrap}
+
+/* AI Optimized Exercise */
+.ex.ai-opt .exs{color:var(--purple)}.ex.ai-opt .exn::after{content:'✨';margin-left:4px;font-size:10px}
+.ex.ai-opt .exnote{color:var(--purple);font-weight:500}
+
+/* Training Log */
+.log-form{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.log-form select,.log-form input{padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;font-family:inherit}
+.log-form select{flex:1;min-width:100px}
+.log-form input{width:56px;text-align:center}
+.log-form .btn-sm{padding:7px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.log-entry{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.log-entry:last-child{border-bottom:none}
+.log-entry .le-del{color:var(--red);cursor:pointer;font-size:14px;margin-left:8px;background:none;border:none}
+.log-empty{font-size:12px;color:var(--sub);text-align:center;padding:12px 0}
+
+/* AI Command Highlight */
+.cmd-block{background:var(--purple);color:#fff;padding:8px 12px;border-radius:10px;margin:6px 0;font-size:13px;font-family:monospace;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cmd-block .cmd-apply{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.cmd-block .cmd-apply.done{background:#4caf50;border-color:#4caf50}
+.cmd-block .cmd-apply:active{transform:scale(.95)}
+@media(prefers-color-scheme:dark){.cmd-block{background:#7c3aed}}
+
+/* Weight & Mood Tracking */
+.weight-section{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.weight-section input{flex:1;min-width:80px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:14px;font-family:inherit;text-align:center}
+.weight-section button{padding:9px 16px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.weight-mini{font-size:12px;color:var(--sub);line-height:1.8;margin-top:4px}
+.weight-change{font-weight:600}
+.weight-down{color:var(--green)}
+.weight-up{color:var(--red)}
+
+.mood-section{display:flex;gap:8px;margin-bottom:12px}
+.mood-btn{flex:1;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);font-size:26px;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit}
+.mood-btn:hover{transform:scale(1.03)}
+.mood-btn.active{border-color:var(--accent);background:var(--accent);box-shadow:0 2px 8px rgba(26,60,110,.25)}
+.mood-btn .mood-label{display:block;font-size:10px;color:var(--sub);margin-top:2px}
+.mood-btn.active .mood-label{color:rgba(255,255,255,.8)}
+
+/* Diet Override Alert */
+.diet-alert{background:#fff3e0;border:1px solid #e36c09;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.6}
+.diet-alert strong{color:var(--orange)}
+@media(prefers-color-scheme:dark){.diet-alert{background:#3d2000;border-color:#8b4513}}
+
+.diet-cmd-block{background:var(--orange);color:#fff;padding:8px 12px;border-radius:10px;margin:6px 0;font-size:13px;font-family:monospace;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.diet-cmd-block .cmd-apply{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.diet-cmd-block .cmd-apply.done{background:#4caf50;border-color:#4caf50}
+.diet-cmd-block .cmd-apply:active{transform:scale(.95)}
+
+
+
+.api-settings{transition:all .3s}
+.api-settings.hidden-api{display:none}
+.api-toggle{position:absolute;top:12px;right:16px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--sub);padding:4px;z-index:1}
+@media(prefers-color-scheme:dark){.api-toggle{color:var(--sub)}}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="date" id="dd"></div>
+  <h1 id="dt"></h1>
+  <div id="db"></div>
+</div>
+
+<div class="dnav" id="dn"></div>
+<div class="tabs" id="tabs"></div>
+<div id="ct"></div>
+<div class="cn">📍 自习室通勤30分钟 · 所有餐食提前备好携带 · 间歇断食 11:30–21:00</div>
+
+<script>
+const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+
+// ===================== DATA =====================
+const studyCommon = [
+  {sub:'数学二（高数+线代）',time:'8:00–10:00',tip:'上午最清醒，刷大题+公式',tags:'math'},
+  {sub:'408 数据结构/计组',time:'10:00–11:30',tip:'概念+算法，换脑保持强度',tags:'408'},
+  {sub:'英语二 阅读',time:'12:15–13:00',tip:'饭后轻学习',tags:'eng'},
+  {sub:'408 操作系统 / 政治',time:'13:30–15:30',tip:'OS概念/政治刷题',tags:'408'},
+  {sub:'英语二 翻译+写作',time:'19:00–20:30',tip:'训练后不过度费脑',tags:'eng'},
+  {sub:'408 计算机网络 / 复盘',time:'21:00–22:30',tip:'计网记忆类，睡前效果好',tags:'408'},
+];
+const studySat = [
+  {sub:'数学二 模拟卷',time:'8:30–11:30',tip:'严格计时，全真模拟',tags:'math'},
+  {sub:'408 真题',time:'13:00–15:00',tip:'整套408，2.5h限时',tags:'408'},
+  {sub:'对答案+错题整理',time:'15:00–17:00',tip:'深度复盘，画知识图谱',tags:''},
+  {sub:'英语二 阅读精练',time:'18:30–20:00',tip:'2篇阅读+精翻',tags:'eng'},
+  {sub:'政治 / 自由复习',time:'20:00–21:30',tip:'补弱项/整理本周笔记',tags:'pol'},
+];
+const mealsCommon = [
+  {time:'11:30',name:'午餐',loc:'自习室',kcal:'~750',options:'鸡胸200g/牛肉150g + 米饭/红薯250-300g + 西兰花+胡萝卜 + 橄榄油10ml'},
+  {time:'15:30',name:'练前餐',loc:'自习室',kcal:'~400',options:'全麦面包2片+花生酱20g + 香蕉1根 或 燕麦80g+蛋白粉冷水冲'},
+  {time:'18:00',name:'练后餐',loc:'路上/健身房',kcal:'~500',options:'即食鸡胸150g/蛋白粉+牛奶 + 红薯200g/全麦面包2片'},
+  {time:'20:30',name:'晚餐 🔥现做',loc:'家',kcal:'~600',options:'豆腐+鸡蛋/虾仁/去皮鸡腿 + 米饭150g/红薯200g + 炒蔬菜 + 橄榄油10ml'},
+];
+
+const D = {
+mon:{name:'周一',title:'推日 · 胸肩三头+核心',dt:'training',badge:'🏋️ 训练日',bc:'badge-training',
+sch:[
+{t:'7:00',a:'起床 · 喝水500ml',n:'不吃饭'},{t:'7:10–7:20',a:'拉伸5分钟+装盒',n:'冰箱拿备餐→保温饭盒'},{t:'7:20–7:50',a:'🚶 通勤自习室',n:'🎧 听政治带背/英语单词'},{t:'8:00–10:00',a:'📐 数学二',n:'上午最清醒，刷大题+背公式'},{t:'10:00–11:30',a:'💻 408 数据结构/计组',n:'概念+算法题'},{t:'11:30–12:15',a:'🍱 午餐（第1盒）',n:'进食窗口开启'},{t:'12:15–13:00',a:'📖 英语二 阅读',n:'饭后轻学习'},{t:'13:00–13:30',a:'💤 午休',n:'趴桌至少闭眼20分钟'},{t:'13:30–15:30',a:'💻 408 OS / 政治',n:''},{t:'15:30–15:45',a:'🥪 练前餐（常温）',n:'面包+花生酱+香蕉'},{t:'15:45–16:15',a:'🚶 去健身房',n:''},{t:'16:15–18:15',a:'🏋️ 推日训练+30分有氧',n:'🔑左肘锁肘不完全打直'},{t:'18:15–18:30',a:'🥩 练后餐',n:'蛋白粉摇摇杯+红薯'},{t:'18:30–19:00',a:'🚶 通勤回家',n:''},{t:'19:00–20:30',a:'🇬🇧 英语二 翻译+写作',n:''},{t:'20:30–21:00',a:'🍲 晚餐（第4盒）',n:'进食窗口关闭'},{t:'21:00–22:30',a:'💻 408 计网/复盘',n:'睡前记忆效果好'},{t:'22:30–23:00',a:'泡沫轴+装盒+肘滑动',n:'尺神经滑动10次×3'},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studyCommon,
+tr:{title:'推日训练 🔑注意左肘',ex:[
+{n:'哑铃卧推',s:'4×8–10',note:'锁肘不完全打直，停在弹响前'},{n:'上斜哑铃推举',s:'3×10–12',note:'同样控制肘部锁定幅度'},{n:'坐姿哑铃推肩',s:'4×8–10',note:'肘不过伸'},{n:'绳索夹胸',s:'3×12–15',note:'减少肩+肘压力'},{n:'弹力带三头下压 🔑',s:'3×15–20',note:'弹力带变阻，对肘友好'},{n:'绳索单臂反握下压',s:'3×12–15/侧',note:'先轻试是否触发弹响'},{n:'哑铃侧平举',s:'3×15–20',note:'轻重量'},{n:'死虫式',s:'3×10/侧',note:'核心稳定'},{n:'平板支撑',s:'3×45–60秒',note:'不塌腰'}]},
+meals:mealsCommon,
+rehab:['左肘尺神经滑动 10次×3（睡前）','髋屈肌拉伸 托马斯拉伸 30秒×2','训练前热身5分钟（猫牛→臀桥→弹力带走→死虫→肩绕环）','练后单车30分钟 心率120-140'],
+tips:'💡 左肘：推类锁肘不完全打直，弹力带三头下压优先。反握下压如果触发弹响就换成弹力带俯身臂屈伸。'},
+tue:{name:'周二',title:'拉日 · 背二头+姿势+髋康复',dt:'training',badge:'🏋️ 训练日',bc:'badge-training',
+sch:[
+{t:'7:00',a:'起床 · 喝水500ml',n:'不吃饭'},{t:'7:10–7:20',a:'拉伸+装盒',n:''},{t:'7:20–7:50',a:'🚶 通勤',n:'🎧 听政治/单词'},{t:'8:00–10:00',a:'📐 数学二',n:''},{t:'10:00–11:30',a:'💻 408 数据结构/计组',n:''},{t:'11:30–12:15',a:'🍱 午餐',n:''},{t:'12:15–13:00',a:'📖 英语二 阅读',n:''},{t:'13:00–13:30',a:'💤 午休',n:''},{t:'13:30–15:30',a:'💻 408 OS / 政治',n:''},{t:'15:30–15:45',a:'🥪 练前餐',n:''},{t:'15:45–16:15',a:'🚶 去健身房',n:''},{t:'16:15–18:15',a:'🏋️ 拉日训练+有氧+髋康复',n:''},{t:'18:15–18:30',a:'🥩 练后餐',n:''},{t:'18:30–19:00',a:'🚶 回家',n:''},{t:'19:00–20:30',a:'🇬🇧 英语二 翻译+写作',n:''},{t:'20:30–21:00',a:'🍲 晚餐',n:''},{t:'21:00–22:30',a:'💻 408 计网/复盘',n:''},{t:'22:30–23:00',a:'泡沫轴+装盒+肘滑动',n:''},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studyCommon,
+tr:{title:'拉日训练+髋康复',ex:[
+{n:'器械高位下拉',s:'4×8–10',note:'替代引体，控制离心'},{n:'胸部支撑划船',s:'4×10–12',note:'脊椎有支撑，腰安全'},{n:'坐姿绳索划船',s:'3×10–12',note:'躯干稳定'},{n:'面拉 Face Pull',s:'3×15–20',note:'🔑纠正圆肩驼背'},{n:'哑铃弯举',s:'3×10–12',note:''},{n:'绳索锤式弯举',s:'3×12–15',note:''},{n:'弹力带肩外旋',s:'2×15/侧',note:'肩袖+姿势'},{n:'墙角拉伸',s:'2×30秒',note:'打开前侧链'},{n:'--髋康复--',s:'',note:''},{n:'托马斯拉伸',s:'3×30秒/侧',note:'拉伸髂腰肌'},{n:'沙发拉伸',s:'2×45秒/侧',note:'股四头+髋屈肌'},{n:'臀桥（弹力带）',s:'3×15',note:'激活臀肌'},{n:'蚌式开合',s:'2×20/侧',note:'臀中肌'}]},
+meals:mealsCommon,
+rehab:['髋康复全套（训练末尾做，不跳过）','左肘尺神经滑动 10次×3（睡前）','弹力带慢速臂屈伸 15次×2','训练前热身5分钟','练后单车30分钟'],
+tips:'💡 周二重点：髋康复不跳过！训练末尾托马斯拉伸→沙发拉伸→臀桥→蚌式，坚持2-4周弹响明显减轻。'},
+wed:{name:'周三',title:'上肢综合 · 中等强度',dt:'training',badge:'🏋️ 训练日',bc:'badge-training',
+sch:[
+{t:'7:00',a:'起床 · 喝水500ml',n:'不吃饭'},{t:'7:10–7:20',a:'拉伸+装盒',n:''},{t:'7:20–7:50',a:'🚶 通勤',n:'🎧 听政治/单词'},{t:'8:00–10:00',a:'📐 数学二',n:''},{t:'10:00–11:30',a:'💻 408 数据结构/计组',n:''},{t:'11:30–12:15',a:'🍱 午餐',n:''},{t:'12:15–13:00',a:'📖 英语二 阅读',n:''},{t:'13:00–13:30',a:'💤 午休',n:''},{t:'13:30–15:30',a:'💻 408 OS / 政治',n:''},{t:'15:30–15:45',a:'🥪 练前餐',n:''},{t:'15:45–16:15',a:'🚶 去健身房',n:''},{t:'16:15–18:15',a:'🏋️ 上肢综合+有氧',n:'中等强度，打磨技术'},{t:'18:15–18:30',a:'🥩 练后餐',n:''},{t:'18:30–19:00',a:'🚶 回家',n:''},{t:'19:00–20:30',a:'🇬🇧 英语二 翻译+写作',n:''},{t:'20:30–21:00',a:'🍲 晚餐',n:''},{t:'21:00–22:30',a:'💻 408 计网/复盘',n:''},{t:'22:30–23:00',a:'放松+装盒+肘滑动',n:''},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studyCommon,
+tr:{title:'上肢综合训练（中强度）',ex:[
+{n:'哑铃卧推（中重量）',s:'3×10–12',note:'控制锁肘幅度'},{n:'高位下拉（中重量）',s:'3×10–12',note:'控制节奏'},{n:'坐姿哑铃推肩',s:'3×10–12',note:''},{n:'胸部支撑划船',s:'3×10–12',note:''},{n:'弹力带三头下压 🔑',s:'2×15–20',note:'不完全锁肘'},{n:'哑铃弯举',s:'2×12–15',note:''},{n:'弹力带拉开',s:'3×15',note:'姿势维持'},{n:'靠墙天使',s:'2×10',note:'胸椎活动度'}]},
+meals:mealsCommon,
+rehab:['左肘尺神经滑动 10次×3','弹力带慢速臂屈伸 15次×2','训练前热身5分钟','练后坡度走30分钟'],
+tips:'💡 周三强度不高，目的是维持频率+打磨动作。如果某天特别累想多休，周三最适合调成休息。'},
+thu:{name:'周四',title:'腿A · 股四主导+单侧+核心',dt:'training',badge:'🏋️ 训练日',bc:'badge-training',
+sch:[
+{t:'7:00',a:'起床 · 喝水500ml',n:'不吃饭'},{t:'7:10–7:20',a:'拉伸+装盒',n:''},{t:'7:20–7:50',a:'🚶 通勤',n:'🎧 听政治/单词'},{t:'8:00–10:00',a:'📐 数学二',n:''},{t:'10:00–11:30',a:'💻 408 数据结构/计组',n:''},{t:'11:30–12:15',a:'🍱 午餐',n:''},{t:'12:15–13:00',a:'📖 英语二 阅读',n:''},{t:'13:00–13:30',a:'💤 午休',n:''},{t:'13:30–15:30',a:'💻 408 OS / 政治',n:''},{t:'15:30–15:45',a:'🥪 练前餐',n:''},{t:'15:45–16:15',a:'🚶 去健身房',n:''},{t:'16:15–18:15',a:'🏋️ 腿A训练+有氧',n:'🔑从右腿开始！'},{t:'18:15–18:30',a:'🥩 练后餐',n:''},{t:'18:30–19:00',a:'🚶 回家',n:''},{t:'19:00–20:30',a:'🇬🇧 英语二 翻译+写作',n:''},{t:'20:30–21:00',a:'🍲 晚餐',n:''},{t:'21:00–22:30',a:'💻 408 计网/复盘',n:''},{t:'22:30–23:00',a:'泡沫轴+装盒+肘滑动',n:''},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studyCommon,
+tr:{title:'腿A · 股四主导 🔑右腿先做',ex:[
+{n:'高脚杯深蹲',s:'4×8–10',note:'杠铃游离，对腰友好'},{n:'保加利亚分腿蹲',s:'4×8–10/侧',note:'🔑从右腿开始！脚跟踩实'},{n:'腿举（半程）',s:'3×12–15',note:'不完全屈髋到底'},{n:'单腿腿举',s:'3×10–12/侧',note:'🔑右腿先做，匹配次数'},{n:'腿弯举',s:'3×12–15',note:'俯卧位腰安全'},{n:'站姿提踵',s:'4×15–20',note:''},{n:'鸟狗式',s:'3×8/侧',note:'核心+脊柱稳定'},{n:'Pallof Press',s:'3×10/侧',note:'核心抗旋转'}]},
+meals:mealsCommon,
+rehab:['🔑所有单侧动作从右腿开始！','左肘尺神经滑动 10次×3','训练前热身（臀肌激活重点做）','练后单车30分钟'],
+tips:'💡 腿A重点：①右腿先做 ②腿举不过深 ③训练前臀肌激活（弹力带臀桥+蚌式）——直接决定腰的安全。'},
+fri:{name:'周五',title:'腿B · 后链+单侧+髋康复',dt:'training',badge:'🏋️ 训练日',bc:'badge-training',
+sch:[
+{t:'7:00',a:'起床 · 喝水500ml',n:'不吃饭'},{t:'7:10–7:20',a:'拉伸+装盒',n:''},{t:'7:20–7:50',a:'🚶 通勤',n:'🎧 听政治/单词'},{t:'8:00–10:00',a:'📐 数学二',n:''},{t:'10:00–11:30',a:'💻 408 数据结构/计组',n:''},{t:'11:30–12:15',a:'🍱 午餐',n:''},{t:'12:15–13:00',a:'📖 英语二 阅读',n:''},{t:'13:00–13:30',a:'💤 午休',n:''},{t:'13:30–15:30',a:'💻 408 OS / 政治',n:''},{t:'15:30–15:45',a:'🥪 练前餐',n:''},{t:'15:45–16:15',a:'🚶 去健身房',n:''},{t:'16:15–18:15',a:'🏋️ 腿B训练+有氧+髋康复',n:''},{t:'18:15–18:30',a:'🥩 练后餐',n:''},{t:'18:30–19:00',a:'🚶 回家',n:''},{t:'19:00–20:30',a:'🇬🇧 英语二 翻译+写作',n:''},{t:'20:30–21:00',a:'🍲 晚餐',n:''},{t:'21:00–22:30',a:'💻 408 计网/复盘',n:''},{t:'22:30–23:00',a:'泡沫轴+装盒+肘滑动',n:''},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studyCommon,
+tr:{title:'腿B+髋康复 🔑右腿先做',ex:[
+{n:'臀推 Hip Thrust',s:'4×8–10',note:'对腰极友好，强化臀肌'},{n:'单腿罗马尼亚硬拉',s:'3×10–12/侧',note:'🔑右腿先做！轻重量控制'},{n:'反向哈克/后侧腿举',s:'3×10–12',note:'腘绳肌+臀'},{n:'坐姿腿弯举',s:'3×12–15',note:''},{n:'弹力带侧向走',s:'3×15步/侧',note:'臀中肌'},{n:'腹部卷腹',s:'3×15–20',note:'避免仰卧起坐'},{n:'悬垂举腿（屈膝版）',s:'3×8–12',note:'核心'},{n:'--髋康复--',s:'',note:''},{n:'托马斯拉伸',s:'3×30秒/侧',note:''},{n:'沙发拉伸',s:'2×45秒/侧',note:''},{n:'臀桥（弹力带）',s:'3×15',note:''},{n:'蚌式开合',s:'2×20/侧',note:''}]},
+meals:mealsCommon,
+rehab:['🔑右腿先做，匹配次数','髋康复全套（训练末尾）','左肘尺神经滑动 10次×3','弹力带慢速臂屈伸 15次×2','训练前热身5分钟','练后椭圆机30分钟'],
+tips:'💡 周五做完髋康复，周六学习冲刺。如果太累，今天可只做康复不练腿。'},
+sat:{name:'周六',title:'主动恢复 · 学习冲刺日',dt:'rest',badge:'📚 主动恢复',bc:'badge-rest',
+sch:[
+{t:'7:30',a:'起床',n:'多睡1小时'},{t:'8:00–8:30',a:'🚶 通勤自习室',n:''},{t:'8:30–11:30',a:'📐 数学二 模拟卷',n:'严格计时3h'},{t:'11:30–12:15',a:'🍱 午餐',n:''},{t:'12:15–13:00',a:'休息',n:''},{t:'13:00–15:00',a:'💻 408 真题模拟',n:'整套限时2.5h'},{t:'15:00–17:00',a:'📚 对答案+错题整理',n:'深度复盘，画知识图谱'},{t:'17:00–18:00',a:'🚶 散步/泡沫轴',n:'选做'},{t:'18:00–18:30',a:'🚶 回家',n:''},{t:'18:30–21:30',a:'📖 英语二+政治/自由',n:''},{t:'21:30–22:30',a:'晚餐+放松',n:''},{t:'23:00',a:'😴 睡觉',n:''}],
+study:studySat,
+tr:null,
+meals:[
+{time:'11:30',name:'午餐',loc:'自习室',kcal:'~750',options:'鸡胸/牛肉+米饭+蔬菜'},
+{time:'~18:00',name:'晚餐（可早吃）',loc:'家',kcal:'~600',options:'自由搭配，控制在600kcal内'},
+],
+rehab:['左肘尺神经滑动 10次×3','髋屈肌拉伸','散步/泡沫轴放松（选做）'],
+tips:'💡 周六冲刺日！上午数学模拟+下午408真题。散步和泡沫轴选做——太累就不做。'},
+sun:{name:'周日',title:'全休日 · 备餐日',dt:'fullRest',badge:'🛑 全休',bc:'badge-fullrest',
+sch:[
+{t:'自然醒',a:'不设闹钟',n:''},{t:'上午',a:'散步+早餐（可以吃）+发呆',n:'唯一吃早饭的一天'},{t:'10:00–12:00',a:'🍳 备餐：肉类处理',n:'鸡胸2kg洗→切→腌→分装5份'},{t:'中午',a:'做顿好吃的',n:'可以稍微放松饮食'},{t:'下午',a:'🍳 备餐：碳水+蔬菜',n:'米饭分5盒→红薯烤→蔬菜焯水→煮蛋'},{t:'傍晚',a:'出门溜达/见朋友/刷剧',n:'完全放空'},{t:'晚上',a:'拉伸+泡澡+早睡',n:'准备迎接周一'}],
+study:null,tr:null,
+meals:[{time:'随意',name:'自由日',loc:'',kcal:'~2500',options:'不严格计算，但不过量。可以吃一顿想吃的。'}],
+rehab:['全身拉伸（选做）','泡沫轴放松','泡脚/热敷腰部','左肘尺神经滑动（别忘了）'],
+tips:'🍳 备餐清单：鸡胸2kg腌制分装 → 牛肉/鱼/虾分份冷冻 → 米饭煮熟分5盒 → 红薯烤熟 → 西兰花焯水 → 菠菜洗净 → 煮6个蛋 → 燕麦分装7袋。听着播客做，2小时搞定。⛔ 不学习！不训练！'},
+};
+
+// ===================== WEEKLY GROCERY =====================
+const GROCERY = [
+{cat:'🥩 蛋白质类',items:[['鸡胸肉','2kg','约4-5块大胸，主力蛋白'],['鸡蛋','30个（2板）','日均4个，含水煮蛋储备'],['瘦牛肉','500g','牛腱/牛里脊，2顿量'],['鱼片','400g','巴沙鱼/龙利鱼，2顿量，冷冻'],['虾仁','300g','冷冻虾仁即可'],['老豆腐','1盒(400g)','2顿量']]},
+{cat:'🍚 碳水类',items:[['大米','1.5kg','普通或杂粮米'],['红薯','1.5kg','中小个，好蒸好烤'],['燕麦片','600g','即食或快煮'],['全麦面包','1袋(12片)','全麦粉排第一']]},
+{cat:'🧈 脂肪类',items:[['橄榄油','1瓶(250ml)','一周够用'],['无糖花生酱','1罐','配料仅花生'],['混合坚果(无盐)','100g','核桃/杏仁/腰果'],['牛油果','1-2个','早餐用']]},
+{cat:'🥬 蔬菜类',items:[['西兰花','2颗','焯水耐放，主力蔬菜'],['菠菜','2把','叶菜买2天量，周中补'],['青菜/生菜','2把','同上'],['胡萝卜','3根','耐放，切丝炒/凉拌'],['黄瓜','3根','凉拌/生吃'],['番茄','4个','炒蛋/凉拌/生吃'],['蘑菇','1盒(200g)','炒/汤'],['洋葱','2个','调味+蔬菜'],['蒜、姜','各1份','腌肉+炒菜必备']]},
+{cat:'🍌 水果',items:[['香蕉','7-8根','练前必备，每天1根'],['苹果','3-4个','早餐/加餐'],['当季水果','随意','蓝莓/橙子/猕猴桃']]},
+{cat:'🧂 调料',items:[['酱油(生抽+老抽)','各1瓶','腌肉+调味'],['料酒','1瓶','去腥'],['蚝油','1瓶','提鲜'],['黑胡椒粉','1瓶','必备'],['小苏打','1袋','嫩肉用，每500g鸡胸加2g']]},
+];
+
+// ===================== RENDER =====================
+function getTodayKey(){
+  const m={0:'sun',1:'mon',2:'tue',3:'wed',4:'thu',5:'fri',6:'sat'};
+  return m[new Date().getDay()];
+}
+function fmtDate(){
+  return new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+}
+function nav(key){
+  document.getElementById('dn').innerHTML = DAYS.map(k=>
+    `<button class="${k===key?'active':''}" onclick="sw('${k}')">${D[k].name}</button>`
+  ).join('');
+}
+function sw(key){render(key);setTimeout(initApiSettings,300);window.scrollTo({top:0,behavior:'smooth'})}
+
+let currentKey = null;
+function showTab(tab){
+  const sections = {sch:'s-sch',meals:'s-meals',tr:'s-tr',rehab:'s-rehab',ci:'s-ci',grocery:'s-grocery'};
+  Object.entries(sections).forEach(([k,id])=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden', k!==tab);
+  });
+  // Update tab buttons
+  document.querySelectorAll('.tabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab);
+  });
+  // Special: show grocery only in 饮食 tab, alongside meals
+  const ge = document.getElementById('s-grocery');
+  if(ge) ge.classList.toggle('hidden', tab!=='meals');
+  // Update check UI when switching to ci tab
+  if(tab==='ci'){setTimeout(updateCheckUI,100);setTimeout(()=>{renderWeightLog();renderMoodButtons();},100);}
+  if(tab==='meals'){setTimeout(renderDietOverrideAlert,100);}
+}
+
+function render(key){
+  currentKey = key;
+  const d = D[key];
+  document.getElementById('dd').textContent = fmtDate();
+  document.getElementById('dt').textContent = d.title;
+  document.getElementById('db').innerHTML = `<span class="day-badge ${d.bc}">${d.badge}</span>`;
+  nav(key);
+
+  // Determine which tabs to show
+  const hasTr = !!d.tr;
+  const tabsHTML = `
+    <button class="active" data-tab="sch" onclick="showTab('sch')"><span class="t-icon">⏰</span>时间表</button>
+    <button data-tab="meals" onclick="showTab('meals')"><span class="t-icon">🍱</span>饮食</button>
+    ${hasTr ? `<button data-tab="tr" onclick="showTab('tr')"><span class="t-icon">🏋️</span>训练</button>` : ''}
+    <button data-tab="rehab" onclick="showTab('rehab')"><span class="t-icon">🩺</span>注意</button>
+    <button data-tab="ci" onclick="showTab('ci')"><span class="t-icon">✅</span>打卡</button>
+  `;
+  document.getElementById('tabs').innerHTML = tabsHTML;
+
+  let html = '';
+
+  // === 时间表 ===
+  html += `<div id="s-sch"><div class="card"><h3>⏰ 今日时间表</h3><div class="tl">`;
+  d.sch.forEach(s=>{
+    html += `<div class="ti"><div class="tt">${s.t}</div><div class="ta">${s.a}</div>${s.n?`<div class="tn">${s.n}</div>`:''}</div>`;
+  });
+  html += `</div></div>`;
+
+  // Study
+  if(d.study){
+    html += `<div class="card"><h3>📚 数二+英二+408 学习计划</h3>`;
+    d.study.forEach(s=>{
+      const tags = s.tags ? s.tags.split(' ').map(t=>{
+        const labels={math:'数二',eng:'英二','408':'408',pol:'政治'};
+        return `<span class="tag tag-${t}">${labels[t]||t}</span>`;
+      }).join('') : '';
+      html += `<div class="sb"><div class="sbs">${tags} ${s.sub}</div><div class="sbt">${s.time}</div>${s.tip?`<div class="sbp">${s.tip}</div>`:''}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`; // close s-sch
+
+  // === 饮食 ===
+  html += `<div id="s-meals" class="hidden"><div id="diet-alert-container"></div><div class="card"><h3>🍱 今日饮食</h3>`;
+  d.meals.forEach(m=>{
+    const locTag = m.loc ? `<span class="ml">@${m.loc}</span>` : '';
+    html += `<div class="meal"><div class="mh"><span class="mn">${m.name}${locTag}</span><span class="mt">${m.time} · ${m.kcal}</span></div><div class="mo">${m.options}</div></div>`;
+  });
+  html += `</div>`;
+
+  // Weekly grocery (only shown on Sunday)
+  if(key==='sun'){
+  html += `<div id="s-grocery" class="card"><h3>🛒 一周采购清单（周日备餐用）</h3>`;
+  html += `<table class="grocery-table">`;
+  GROCERY.forEach(cat=>{
+    html += `<tr><td class="cat" colspan="3">${cat.cat}</td></tr>`;
+    cat.items.forEach((item,i)=>{
+      html += `<tr><td>${item[0]}</td><td style="white-space:nowrap;color:var(--accent);font-weight:600">${item[1]}</td><td style="font-size:11px;color:var(--sub)">${item[2]}</td></tr>`;
+    });
+  });
+  html += `</table>`;
+  html += `<div style="font-size:11px;color:var(--sub);text-align:center;margin-top:8px">💰 预估总花费 ¥300-440/周 · 日均¥43-63</div>`;
+  html += `</div>`;
+  } // end sunday-only grocery
+  html += `</div>`; // close s-grocery + s-meals
+
+  // === 训练 ===
+  if(d.tr){
+    const overrides = loadPlanOverrides();
+    html += `<div id="s-tr" class="hidden"><div class="card"><h3>🏋️ ${d.tr.title}</h3>
+      <div style="font-size:10px;color:var(--sub);text-align:right;margin-bottom:6px;cursor:pointer" onclick="clearAllOverrides()">${Object.keys(overrides).length?'🔧 清除AI优化 ('+Object.keys(overrides).length+')':''}</div>`;
+    d.tr.ex.forEach(ex=>{
+      if(ex.n.startsWith('--')){
+        html += `<div class="sep">${ex.n}</div>`;
+      }else{
+        const ov = overrides[ex.n];
+        if(ov){
+          if(ov.skip){
+            html += `<div class="ex" style="opacity:.5;text-decoration:line-through"><div><div class="exn">${ex.n}</div><div class="exnote" style="color:var(--red)">跳过: ${ov.note||''}</div></div><div class="exs">${ex.s}</div></div>`;
+          }else{
+            html += `<div class="ex ai-opt"><div><div class="exn">${ex.n}</div><div class="exnote">${ov.note||ex.note||''}</div></div><div class="exs">${ov.sets}</div></div>`;
+          }
+        }else{
+          html += `<div class="ex"><div><div class="exn">${ex.n}</div>${ex.note?`<div class="exnote">${ex.note}</div>`:''}</div><div class="exs">${ex.s}</div></div>`;
+        }
+      }
+    });
+    html += `</div></div>`;
+  }
+
+  // === 注意事项 ===
+  html += `<div id="s-rehab" class="hidden"><div class="card"><h3>🩺 康复 & 注意事项</h3>`;
+  d.rehab.forEach((r,i)=>{
+    html += `<div class="rh"><input type="checkbox" id="rh${i}"><label for="rh${i}">${r}</label></div>`;
+  });
+  html += `</div>`;
+  if(d.tips) html += `<div class="tips">${d.tips}</div>`;
+  html += `</div>`; // close s-rehab
+
+
+  // === 打卡 ===
+  html += `<div id="s-ci" class="hidden">`;
+  // Weight tracking
+  html += `<div class="card"><h3>⚖️ 体重记录 (kg)</h3><div class="weight-section"><input type="number" id="weight-input" placeholder="体重kg" step="0.1" min="30" max="200"><button onclick="logWeight()">保存</button></div><div id="weight-mini-list" class="weight-mini"></div><div id="weight-week-change" style="font-size:11px;color:var(--sub);margin-top:4px"></div></div>`;
+  // Mood tracking
+  html += `<div class="card"><h3>😊 今日心情</h3><div class="mood-section"><button class="mood-btn" id="mood-good" onclick="logMood('good')">😄<span class="mood-label">精力好</span></button><button class="mood-btn" id="mood-ok" onclick="logMood('ok')">😐<span class="mood-label">一般</span></button><button class="mood-btn" id="mood-tired" onclick="logMood('tired')">😫<span class="mood-label">很累</span></button></div></div>`;
+  // Check-in
+  html += `<div class="card"><h3>✅ 今日打卡</h3><div class="ci-grid">`;
+  const checks = [
+    {id:'training',icon:'🏋️',label:'训练完成'},
+    {id:'meals',icon:'🍱',label:'饮食按计划'},
+    {id:'rehab',icon:'🩺',label:'康复完成'},
+    {id:'study',icon:'📚',label:'学习达标'},
+    {id:'sleep',icon:'😴',label:'睡眠≥7h'},
+  ];
+  checks.forEach(c=>{
+    html += `<div class="ci-item" id="ci-${c.id}" onclick="toggleCheck('${c.id}')"><div class="ci-icon">${c.icon}</div><div class="ci-label">${c.label}</div><div class="ci-check">✓</div></div>`;
+  });
+  html += `</div></div>`;
+  // Stats
+  const stats = getStats();
+  html += `<div class="card"><h3>📊 本周统计</h3><div class="stat-row"><div style="text-align:center"><div class="stat-num">${stats.streak}</div><div class="stat-label">连续打卡(天)</div></div><div style="text-align:center"><div class="stat-num">${stats.weekRate}%</div><div class="stat-label">本周完成率</div></div><div style="text-align:center"><div class="stat-num">${stats.total}</div><div class="stat-label">累计打卡(天)</div></div></div></div>`;
+  // Weekly grid
+  html += `<div class="card"><h3>📅 本周</h3><div class="wk-grid">`;
+  ['一','二','三','四','五','六','日'].forEach((d,i)=>{
+    const date = getDateForDay(i);
+    const done = isDateDone(date);
+    html += `<div><div class="wk-dot${done?' done':''}"></div><div class="wk-label">${d}</div></div>`;
+  });
+  html += `</div></div>`;
+  // Training log section
+  html += `<div class="card"><h3>📝 训练记录</h3>`;
+  const todayLogExs = (loadTrainingLogs()[getTodayStr()]||{exercises:[]}).exercises;
+  html += `<div id="training-log-list">`;
+  if(todayLogExs.length===0){
+    html += `<div class="log-empty">📝 今天还没有记录训练数据</div>`;
+  }else{
+    todayLogExs.forEach((e,i)=>{
+      html += `<div class="log-entry"><span>🏋️ <b>${e.name}</b> ${e.weight}kg ${e.reps}次 ${e.sets}组 RPE${e.rpe} ${e.notes?'💬'+e.notes:''} <span style="color:var(--sub);font-size:10px">${e.time||''}</span></span><button class="le-del" onclick="deleteLogEntry(${i})">✕</button></div>`;
+    });
+  }
+  html += `</div>`;
+  // Log form - only show if today is training day
+  if(d.tr){
+    html += `<div class="log-form"><select id="log-exercise">`;
+    d.tr.ex.forEach(ex=>{if(!ex.n.startsWith('--'))html+=`<option value="${ex.n}">${ex.n}</option>`;});
+    html += `</select><input type="number" id="log-weight" placeholder="重量kg"><input type="number" id="log-reps" placeholder="次数"><input type="number" id="log-sets" placeholder="组数"><input type="number" id="log-rpe" placeholder="RPE" min="1" max="10"><input id="log-notes" placeholder="备注" style="width:80px"><button class="btn-sm" onclick="logExercise()">记录</button></div>`;
+  }else{
+    html += `<div class="log-empty">💤 今天休息日，无需训练记录</div>`;
+  }
+  html += `</div></div>`; // close s-ci
+
+  // === Settings (API key) ===
+  html += `<div class="card api-settings" id="api-settings-card" style="margin-top:10px;position:relative"><button class="api-toggle" onclick="showApiSettings()" title="API设置" id="api-toggle-btn" style="display:none">⚙️</button><h3>⚙️ DeepSeek API</h3><div class="settings-row"><input type="password" id="apikey-input" placeholder="输入DeepSeek API Key" value="${localStorage.getItem('ds-key')||''}" placeholder="输入你的DeepSeek API Key"><button onclick="saveApiKey()">保存</button></div><div style="font-size:11px;color:var(--sub);margin-top:6px">获取: platform.deepseek.com → API Keys</div></div>`;
+
+  document.getElementById('ct').innerHTML = html;
+
+  // Load checkboxes
+  d.rehab.forEach((_,i)=>{
+    const cb = document.getElementById('rh'+i);
+    if(cb){
+      cb.checked = localStorage.getItem(`r-${key}-${i}`)==='true';
+      cb.addEventListener('change',()=>localStorage.setItem(`r-${key}-${i}`,cb.checked));
+    }
+  });
+
+  // Show first tab by default
+  showTab('sch');
+  setTimeout(()=>{renderWeightLog();renderMoodButtons();renderDietOverrideAlert();},50);
+}
+
+
+function getTodayStr(){return new Date().toISOString().slice(0,10)}
+function loadChecks(){try{return JSON.parse(localStorage.getItem('checks')||'{}')}catch(e){return{}}}
+function saveChecks(c){localStorage.setItem('checks',JSON.stringify(c))}
+
+// ===================== TRAINING LOG (localStorage) =====================
+function loadTrainingLogs(){try{return JSON.parse(localStorage.getItem('training-logs')||'{}')}catch(e){return{}}}
+function saveTrainingLogs(logs){localStorage.setItem('training-logs',JSON.stringify(logs))}
+function logExercise(){
+  const sel=document.getElementById('log-exercise');
+  const name=sel.value;if(!name)return;
+  const weight=document.getElementById('log-weight').value||'';
+  const reps=document.getElementById('log-reps').value||'';
+  const sets=document.getElementById('log-sets').value||'';
+  const rpe=document.getElementById('log-rpe').value||'';
+  const notes=document.getElementById('log-notes').value||'';
+  const today=getTodayStr();
+  const logs=loadTrainingLogs();
+  if(!logs[today])logs[today]={exercises:[]};
+  logs[today].exercises.push({name,weight,reps,sets,rpe,notes,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+  saveTrainingLogs(logs);
+  renderTrainingLog();
+  // Clear inputs
+  ['log-weight','log-reps','log-sets','log-rpe','log-notes'].forEach(id=>document.getElementById(id).value='');
+}
+function deleteLogEntry(idx){
+  const today=getTodayStr();
+  const logs=loadTrainingLogs();
+  if(logs[today]&&logs[today].exercises){
+    logs[today].exercises.splice(idx,1);
+    if(logs[today].exercises.length===0)delete logs[today];
+    saveTrainingLogs(logs);
+  }
+  renderTrainingLog();
+}
+function renderTrainingLog(){
+  const container=document.getElementById('training-log-list');
+  if(!container)return;
+  const today=getTodayStr();
+  const logs=loadTrainingLogs();
+  const todayLogs=logs[today]||{exercises:[]};
+  if(todayLogs.exercises.length===0){
+    container.innerHTML='<div class="log-empty">📝 今天还没有记录训练数据</div>';
+    return;
+  }
+  container.innerHTML=todayLogs.exercises.map((e,i)=>`<div class="log-entry"><span>🏋️ <b>${e.name}</b> ${e.weight}kg ${e.reps}次 ${e.sets}组 RPE${e.rpe} ${e.notes?'💬'+e.notes:''} <span style="color:var(--sub);font-size:10px">${e.time||''}</span></span><button class="le-del" onclick="deleteLogEntry(${i})">✕</button></div>`).join('');
+}
+
+// ===================== PLAN OVERRIDES (localStorage) =====================
+
+// ===================== WEIGHT TRACKING (localStorage) =====================
+function loadWeightLogs(){try{return JSON.parse(localStorage.getItem('weight-logs')||'{}')}catch(e){return{}}}
+function saveWeightLogs(logs){localStorage.setItem('weight-logs',JSON.stringify(logs))}
+function logWeight(){
+  const input=document.getElementById('weight-input');
+  const val=parseFloat(input.value);
+  if(!val||val<30||val>200){alert('请输入有效体重(30-200kg)');return;}
+  const today=getTodayStr();
+  const logs=loadWeightLogs();
+  logs[today]=Math.round(val*10)/10;
+  saveWeightLogs(logs);
+  input.value='';
+  renderWeightLog();
+}
+function renderWeightLog(){
+  const container=document.getElementById('weight-mini-list');
+  if(!container)return;
+  const logs=loadWeightLogs();
+  const dates=Object.keys(logs).sort().slice(-7);
+  if(dates.length===0){container.innerHTML='<div class="log-empty">📝 还没有体重记录</div>';return;}
+  let html='';
+  for(let i=0;i<dates.length;i++){
+    const d=dates[i];
+    const ds=d.slice(5);
+    html+=ds+': <b>'+logs[d]+'kg</b>';
+    if(i>0){
+      const diff=Math.round((logs[d]-logs[dates[i-1]])*10)/10;
+      if(diff!==0){
+        const cls=diff<0?'weight-down':'weight-up';
+        const arrow=diff<0?'↓':'↑';
+        html+=' <span class="weight-change '+cls+'">'+arrow+Math.abs(diff)+'</span>';
+      }
+    }
+    if(i<dates.length-1)html+=' → ';
+  }
+  container.innerHTML=html;
+  // Update weekly change
+  const weekEl=document.getElementById('weight-week-change');
+  if(weekEl&&dates.length>=2){
+    const first=logs[dates[0]];
+    const last=logs[dates[dates.length-1]];
+    const change=Math.round((last-first)*10)/10;
+    if(change!==0){
+      const cls=change<0?'weight-down':'weight-up';
+      const arrow=change<0?'↓':'↑';
+      weekEl.innerHTML='本周: <span class="weight-change '+cls+'">'+arrow+Math.abs(change)+'kg</span>';
+    }else{weekEl.innerHTML='本周: 持平';}
+  }
+}
+
+// ===================== MOOD TRACKING (localStorage) =====================
+function loadMoodLogs(){try{return JSON.parse(localStorage.getItem('mood-logs')||'{}')}catch(e){return{}}}
+function saveMoodLogs(logs){localStorage.setItem('mood-logs',JSON.stringify(logs))}
+function logMood(mood){
+  const today=getTodayStr();
+  const logs=loadMoodLogs();
+  logs[today]=mood;
+  saveMoodLogs(logs);
+  renderMoodButtons();
+}
+function renderMoodButtons(){
+  const today=getTodayStr();
+  const logs=loadMoodLogs();
+  const current=logs[today]||'';
+  ['good','ok','tired'].forEach(m=>{
+    const el=document.getElementById('mood-'+m);
+    if(el)el.classList.toggle('active',current===m);
+  });
+}
+
+function loadPlanOverrides(){try{return JSON.parse(localStorage.getItem('plan-overrides')||'{}')}catch(e){return{}}}
+function savePlanOverrides(ov){localStorage.setItem('plan-overrides',JSON.stringify(ov))}
+
+function parseAICommand(text){
+  const results=[];
+  const regex=/\/update\s+(.+?)\s+(.+?)\s+(.+?)(?:\n|$)/g;
+  let match;
+  while((match=regex.exec(text))!==null){
+    results.push({name:match[1].trim(),sets:match[2].trim(),note:match[3].trim()});
+  }
+  if(results.length===0)return results;
+  const overrides=loadPlanOverrides();
+  results.forEach(r=>{
+    if(r.sets.toLowerCase()==='skip'){
+      overrides[r.name]={sets:'跳过',note:r.note,skip:true};
+    }else{
+      overrides[r.name]={sets:r.sets,note:r.note};
+    }
+  });
+  savePlanOverrides(overrides);
+  // Re-render current day to reflect changes
+  if(currentKey)render(currentKey);
+  return results;
+}
+
+function applyCommandFromChat(btn,name,sets,note){
+  const overrides=loadPlanOverrides();
+  if(sets.toLowerCase()==='skip'){
+    overrides[name]={sets:'跳过',note,skip:true};
+  }else{
+    overrides[name]={sets,note};
+  }
+  savePlanOverrides(overrides);
+  btn.textContent='✓ 已应用';
+  btn.classList.add('done');
+  btn.disabled=true;
+  if(currentKey)render(currentKey);
+}
+
+function clearAllOverrides(){
+  if(confirm("确定清除所有AI优化方案，恢复原始计划？")){
+    localStorage.removeItem("plan-overrides");
+    if(currentKey)render(currentKey);
+  }
+}
+
+// ===================== DIET OVERRIDES (localStorage) =====================
+function loadDietOverrides(){try{return JSON.parse(localStorage.getItem('diet-overrides')||'{}')}catch(e){return{}}}
+function saveDietOverrides(ov){localStorage.setItem('diet-overrides',JSON.stringify(ov))}
+
+function parseDietCommand(text){
+  const results=[];
+  const regex=/\/diet\s+calories\s+(\d+)\s+protein\s+(\d+)\s+(.+?)(?=\n|$)/g;
+  let match;
+  while((match=regex.exec(text))!==null){
+    const cals=parseInt(match[1]);
+    const prot=parseInt(match[2]);
+    const note=match[3].trim();
+    if(cals>0&&prot>0){
+      const overrides={calories:cals,protein:prot,note};
+      saveDietOverrides(overrides);
+      results.push(overrides);
+    }
+  }
+  return results;
+}
+
+function applyDietCommandFromChat(btn,calories,protein,note){
+  const overrides={calories:parseInt(calories),protein:parseInt(protein),note};
+  saveDietOverrides(overrides);
+  btn.textContent='✓ 已应用';
+  btn.classList.add('done');
+  btn.disabled=true;
+  if(currentKey)render(currentKey);
+  renderDietOverrideAlert();
+}
+
+function clearDietOverrides(){
+  if(confirm('确定清除AI饮食调整，恢复原始方案？')){
+    localStorage.removeItem('diet-overrides');
+    if(currentKey)render(currentKey);
+    renderDietOverrideAlert();
+  }
+}
+
+function renderDietOverrideAlert(){
+  const container=document.getElementById('diet-alert-container');
+  if(!container)return;
+  const ov=loadDietOverrides();
+  if(ov&&ov.calories){
+    container.innerHTML='<div class="diet-alert">🤖 <strong>AI建议：</strong>热量调整至<b>'+ov.calories+'kcal</b>，蛋白<b>'+ov.protein+'g</b>，理由：'+ov.note+' <span style="font-size:10px;color:var(--sub);cursor:pointer;margin-left:8px" onclick="clearDietOverrides()">清除</span></div>';
+  }else{
+    container.innerHTML='';
+  }
+}
+
+function toggleCheck(id){
+  const checks=loadChecks();
+  const today=getTodayStr();
+  if(!checks[today])checks[today]={};
+  checks[today][id]=!checks[today][id];
+  saveChecks(checks);
+  updateCheckUI();
+}
+function updateCheckUI(){
+  const checks=loadChecks();
+  const today=getTodayStr();
+  const td=checks[today]||{};
+  ['training','meals','rehab','study','sleep'].forEach(id=>{
+    const el=document.getElementById('ci-'+id);
+    if(el)el.classList.toggle('done',!!td[id]);
+  });
+}
+function getDateForDay(dayIndex){
+  const now=new Date();
+  const day=now.getDay()||7;
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-(day-1)+dayIndex);
+  return monday.toISOString().slice(0,10);
+}
+function isDateDone(dateStr){
+  const checks=loadChecks();
+  const td=checks[dateStr]||{};
+  const done=Object.values(td).filter(Boolean).length;
+  return done>=4;
+}
+function getStats(){
+  const checks=loadChecks();
+  let streak=0,total=0,weekDone=0;
+  const today=getTodayStr();
+  // Count streak
+  const d=new Date();
+  while(true){
+    const ds=d.toISOString().slice(0,10);
+    if(isDateDone(ds)){streak++;d.setDate(d.getDate()-1)}
+    else break;
+  }
+  // Count total & this week
+  Object.entries(checks).forEach(([date,td])=>{
+    const done=Object.values(td).filter(Boolean).length;
+    if(done>=4)total++;
+  });
+  // This week
+  for(let i=0;i<7;i++){
+    if(isDateDone(getDateForDay(i)))weekDone++;
+  }
+  const weekRate=Math.round((weekDone/7)*100);
+  return {streak,total,weekRate};
+}
+
+function saveApiKey(){
+  const key=document.getElementById('apikey-input').value.trim();
+  if(key){
+    localStorage.setItem('ds-key',key);
+    // Hide the settings card after saving
+    const card=document.getElementById('api-settings-card');
+    card.classList.add('hidden-api');
+    document.getElementById('api-toggle-btn').style.display='block';
+  }
+}
+
+// ===================== AI CHAT =====================
+const SYSTEM_PROMPT = `你是减脂备考私人助手。用户完整档案：
+
+【基本信息】男，23岁，187cm，115kg，目标90kg/体脂18%。
+
+【考试】数二+英二+408计算机考研，12月二战。通勤自习室30分钟。
+
+【饮食】间歇断食11:30-21:00（不吃早饭），2700-2800kcal/天，蛋白200-220g/天。4餐全部提前备好携带去自习室：午餐(~750kcal，鸡胸200g/牛肉150g+米饭/红薯250-300g+西兰花+胡萝卜)、练前餐(~400kcal，全麦面包+花生酱+香蕉)、练后餐(~500kcal，即食鸡胸+红薯/面包)、晚餐(~600kcal，现做，豆腐+鸡蛋/虾仁+炒蔬菜)。周日自由日~2500kcal。
+
+【身体状况与限制】左手肘弹响（尺神经/三头肌腱，不能完全锁肘）、腰深蹲不适（核心稳定性不足）、髂腰肌弹响、右腿偏弱（所有单侧动作从右腿开始）。
+
+【训练计划 · 一周五练】
+★ 周一推日(胸肩三头+核心)🔑注意左肘：哑铃卧推4×8-10(锁肘不完全打直)、上斜哑铃推举3×10-12(控制肘部幅度)、坐姿哑铃推肩4×8-10(肘不过伸)、绳索夹胸3×12-15、弹力带三头下压3×15-20(对肘友好)、绳索单臂反握下压3×12-15/侧、哑铃侧平举3×15-20、死虫式3×10/侧、平板支撑3×45秒。练后单车30分钟。
+★ 周二拉日(背二头+髋康复)：引体向上/高位下拉4×8-10、坐姿绳索划船4×10-12、单臂哑铃划船3×10-12/侧、面拉3×15-20、哑铃弯举3×12-15、锤式弯举3×12-15、髋康复(托马斯拉伸3×30秒/侧+沙发拉伸2×45秒/侧+臀桥弹力带3×15+蚌式开合2×20/侧)。练后椭圆机30分钟。
+★ 周三上肢综合(肩臂+核心)：阿诺德推举3×10-12、侧平举+前平举超级组3×15+12、绳索面拉3×15-20、窄距俯卧撑3×力竭、绳索弯举3×12-15、集中弯举3×12-15/侧、俄罗斯转体3×20、平板支撑交替抬手3×10/侧。练后单车30分钟。
+★ 周四腿A(股四主导)🔑右腿先做：高脚杯深蹲4×8-10(杠铃游离对腰友好)、保加利亚分腿蹲4×8-10/侧(🔑右腿先做)、腿举半程3×12-15(不过深)、单腿腿举3×10-12/侧(🔑右腿先做)、腿弯举3×12-15、站姿提踵4×15-20、鸟狗式3×8/侧、Pallof Press 3×10/侧。训练前臀肌激活(弹力带臀桥+蚌式)。练后单车30分钟。
+★ 周五腿B(后链+髋康复)🔑右腿先做：臀推4×8-10(对腰极友好)、单腿罗马尼亚硬拉3×10-12/侧(🔑右腿先做轻重量)、反向哈克/后侧腿举3×10-12、坐姿腿弯举3×12-15、弹力带侧向走3×15步/侧、腹部卷腹3×15-20、悬垂举腿(屈膝)3×8-12、髋康复全套(托马斯拉伸+沙发拉伸+臀桥弹力带+蚌式开合)。练后椭圆机30分钟。
+★ 周六主动恢复学习日：不训练，数学模拟+408真题+错题整理，散步/泡沫轴选做。
+★ 周日全休备餐：不学习不训练，备餐(鸡胸2kg腌制分装+牛肉/鱼/虾分份冷冻+米饭分5盒+红薯烤+西兰花焯水+菠菜洗+煮蛋+燕麦分装)+放松。
+
+【每周采购清单】蛋白质：鸡胸2kg、鸡蛋30个、瘦牛肉500g、鱼片400g、虾仁300g、老豆腐1盒。碳水：大米1.5kg、红薯1.5kg、燕麦600g、全麦面包1袋。脂肪：橄榄油、花生酱、混合坚果、牛油果。蔬菜：西兰花2颗、菠菜、青菜、胡萝卜、黄瓜、番茄、蘑菇、洋葱、蒜姜。水果：香蕉7-8根、苹果3-4个。
+
+【你的角色】根据用户的反馈和打卡数据提供简洁实用的调整建议。用户可能会说"今天跳过训练了""腰不舒服""吃超了""不想学了"等，你需要基于训练计划和身体限制给出针对性调整（如：如何重新安排本周训练、替代动作推荐、饮食补救策略、状态调节建议等）。回复简短(2-5句话)，用emoji增加亲和力。用户用中文，你用中文回复。
+
+【方案优化系统】你可以通过特殊命令直接修改用户的训练方案：
+- 格式：/update 动作名 组数×次数 备注
+- 示例：/update 哑铃卧推 4×6-8 加重5kg，控制离心3秒
+- 每次回复最多3条update命令，放在回复末尾
+- 系统会自动应用这些修改并高亮显示
+
+【渐进超负荷调整规则】
+- 用户连续2次完成目标次数→下次同一动作建议+2.5-5kg
+- 连续2次未完成目标次数→建议降重5-10%或调整次数范围
+- 如果用户反馈某动作不适/疼痛→建议替换动作并输出 /update 动作名 skip 原因
+- 使用 /update 动作名 新组数×次数 理由 格式直接修改计划
+
+【训练日志】用户可能会在聊天中报告训练数据，格式如：哑铃卧推 30kg 8次 4组 RPE8。你可以根据这些数据判断是否需要调整方案。
+
+【体重追踪规则】
+- 连续2周体重不降(变化<0.3kg/周) → 建议降100-200kcal，输出 /diet calories 数字 protein 数字 理由 命令
+- 体重下降>1kg/周 → 建议加100-200kcal防止肌肉流失，输出 /diet 命令
+- 目标轨迹：7月115→110, 8月110→106, 9月106→102, 10月102→98, 11月98→95, 12月95→93
+
+【心情/恢复规则】
+- 连续3天😫(tired) + 训练RPE偏高 → 建议减量周(deload)，输出 /update 动作名 轻重量组数×次数 降低强度
+- 😄(good)多天 + 训练轻松 → 建议渐进超负荷，输出 /update 命令加重
+
+【饮食调整命令】
+- 格式：/diet calories 数字 protein 数字 理由
+- 示例：/diet calories 2500 protein 220 平台期2周，降200kcal
+- 每次回复最多1条/diet命令
+
+【综合判断】
+每次对话时查看用户的体重趋势(最近2周)、心情趋势(最近1周)、训练日志(最新一次)，给出综合建议。如有需要，用 /update 或 /diet 命令直接修改方案。`;
+
+// ===================== CHAT HISTORY (localStorage) =====================
+const CHAT_HISTORY_KEY = 'chat-history';
+const MAX_HISTORY_ROUNDS = 30; // 最近30轮对话(60条消息)
+
+function loadChatHistory(){
+  try{
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function saveChatHistory(history){
+  const trimmed = history.slice(-(MAX_HISTORY_ROUNDS * 2));
+  localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed));
+}
+
+function renderChatHistory(){
+  const history = loadChatHistory();
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML = '';
+  if(history.length === 0){
+    msgs.innerHTML = '<div class="chat-msg ai">你好！我是你的减脂备考助手💪 可以问我训练、饮食、康复、考研相关问题。所有对话记录都会保存，刷新不丢失。</div>';
+    return;
+  }
+  history.forEach(h => {
+    if(h.role==='assistant'){
+      msgs.innerHTML += `<div class="chat-msg ai">${renderChatReply(h.content)}</div>`;
+    }else{
+      msgs.innerHTML += `<div class="chat-msg user">${h.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    }
+  });
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function initApiKey(){
+  if(!localStorage.getItem('ds-key')){
+    localStorage.setItem('ds-key', '');
+  }
+}
+
+function toggleChat(){
+  const overlay=document.getElementById('chat-overlay');
+  const wasOpen=overlay.classList.contains('open');
+  overlay.classList.toggle('open');
+  if(!wasOpen && overlay.classList.contains('open')){
+    // Lock body immediately before anything else
+    const scrollY=window.scrollY;
+    document.body.style.position='fixed';
+    document.body.style.top='-'+scrollY+'px';
+    document.body.style.left='0';
+    document.body.style.right='0';
+    document.body.style.overflow='hidden';
+    document.documentElement.style.overflow='hidden';
+    // Reload chat history from localStorage
+    renderChatHistory();
+    // Focus after a tiny delay to let layout settle
+    setTimeout(()=>{document.getElementById('chat-input').focus();},100);
+  }else{
+    const top=document.body.style.top;
+    document.body.style.position='';
+    document.body.style.top='';
+    document.body.style.left='';
+    document.body.style.right='';
+    document.body.style.overflow='';
+    document.documentElement.style.overflow='';
+    if(top) window.scrollTo(0, parseInt(top.replace('px','').replace('-',''))*-1||0);
+  }
+}
+// iOS keyboard handling
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{
+    const overlay=document.getElementById('chat-overlay');
+    if(overlay && overlay.classList.contains('open')){
+      const msgs=document.getElementById('chat-msgs');
+      if(msgs){
+        msgs.style.paddingBottom=(window.visualViewport.height - window.visualViewport.offsetTop + 20)+'px';
+        msgs.scrollTop=msgs.scrollHeight;
+  // Dismiss keyboard on send for better UX
+  document.getElementById('chat-input').blur();
+      }
+    }
+  });
+}
+
+async function sendMsg(){
+  const input=document.getElementById('chat-input');
+  const msg=input.value.trim();
+  if(!msg)return;
+  const key=localStorage.getItem('ds-key');
+  if(!key){alert('请先在打卡页面设置DeepSeek API Key');return;}
+  
+  const msgs=document.getElementById('chat-msgs');
+  msgs.innerHTML+=`<div class="chat-msg user">${msg.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+  input.value='';
+  msgs.innerHTML+=`<div class="chat-msg ai"><div class="spinner"></div></div>`;
+  requestAnimationFrame(()=>{
+    msgs.scrollTop=msgs.scrollHeight;
+  // Dismiss keyboard on send for better UX
+  document.getElementById('chat-input').blur();
+    // Double scroll for iOS keyboard
+    setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},300);
+  });
+  
+  // Build training log context
+  const todayLogs=loadTrainingLogs();
+  const today=getTodayStr();
+  const todayData=todayLogs[today];
+  let logCtx='';
+  if(todayData&&todayData.exercises&&todayData.exercises.length>0){
+    logCtx='\n\n【今日训练记录】\n'+todayData.exercises.map(e=>`${e.name}: ${e.weight}kg ${e.reps}次×${e.sets}组 RPE${e.rpe} ${e.notes||''}`).join('\n');
+  }
+  // Include weight data
+  const weightLogs=loadWeightLogs();
+  const wDates=Object.keys(weightLogs).sort().slice(-7);
+  if(wDates.length>0){
+    logCtx+='\n\n【最近体重】\n'+wDates.map(d=>d.slice(5)+': '+weightLogs[d]+'kg').join(' → ');
+    if(wDates.length>=2){
+      const wChange=Math.round((weightLogs[wDates[wDates.length-1]]-weightLogs[wDates[0]])*10)/10;
+      logCtx+=' (变化'+ (wChange>=0?'+':'')+wChange+'kg)';
+    }
+  }
+  // Include mood data
+  const moodLogs=loadMoodLogs();
+  const mDates=Object.keys(moodLogs).sort().slice(-7);
+  if(mDates.length>0){
+    const moodMap={good:'😄精力好',ok:'😐一般',tired:'😫很累'};
+    logCtx+='\n\n【最近心情】\n'+mDates.map(d=>d.slice(5)+': '+moodMap[moodLogs[d]]).join(', ');
+  }
+  // Include recent overrides
+  const ov=loadPlanOverrides();
+  const ovKeys=Object.keys(ov);
+  let ovCtx='';
+  if(ovKeys.length>0){
+    ovCtx='\n\n【当前训练覆盖】\n'+ovKeys.map(k=>ov[k].skip?`${k}: 跳过 (${ov[k].note})`:`${k}: ${ov[k].sets} (${ov[k].note})`).join('\n');
+  }
+  // Include diet overrides
+  const dov=loadDietOverrides();
+  if(dov&&dov.calories){
+    ovCtx+='\n\n【当前饮食覆盖】热量'+dov.calories+'kcal 蛋白'+dov.protein+'g 理由:'+dov.note;
+  }
+  
+  const history = loadChatHistory();
+  const apiMessages = [
+    {role:'system', content:SYSTEM_PROMPT},
+    ...history.slice(-(MAX_HISTORY_ROUNDS * 2)),
+    {role:'user', content:msg + logCtx + ovCtx}
+  ];
+  
+  try{
+    const resp=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({
+        model:'deepseek-chat',
+        messages: apiMessages,
+        max_tokens: 600,
+        temperature: 0.7
+      })
+    });
+    const data=await resp.json();
+    let reply; if(data.error){ const em=data.error.message||''; if(em.includes('auth')||em.includes('key')||em.includes('token')||em.includes('401')||em.includes('403')){ onApiError(); reply='API Key无效或过期，请重新输入'; }else{ reply='API错误: '+em; } }else{ reply=data.choices?.[0]?.message?.content||'未知错误'; }
+    
+    // Parse and render reply with command blocks
+    const lastAi=msgs.querySelector('.chat-msg.ai:last-child');
+    if(lastAi){
+      lastAi.innerHTML = renderChatReply(reply);
+    }
+    
+    // Save to history
+    history.push({role:'user', content:msg});
+    // Auto-apply commands
+    parseAICommand(reply);
+    parseDietCommand(reply);
+    history.push({role:'assistant', content:reply});
+    saveChatHistory(history);
+  }catch(e){
+    const lastAi=msgs.querySelector('.chat-msg.ai:last-child');
+    if(lastAi)lastAi.textContent='网络错误，请重试';
+  }
+  requestAnimationFrame(()=>{
+    msgs.scrollTop=msgs.scrollHeight;
+  // Dismiss keyboard on send for better UX
+  document.getElementById('chat-input').blur();
+    // Double scroll for iOS keyboard
+    setTimeout(()=>{msgs.scrollTop=msgs.scrollHeight;},300);
+  });
+}
+
+function renderChatReply(text){
+  // Escape HTML first
+  let html = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Find /update commands and replace with styled blocks
+  html = html.replace(/\/update\s+(.+?)\s+(.+?)\s+(.+?)(?=\n|$)/g, (match,name,sets,note)=>{
+    const safeName=name.replace(/'/g,"\\'");
+    return `<div class="cmd-block"><span>📋 /update ${name} ${sets} ${note}</span><button class="cmd-apply" onclick="applyCommandFromChat(this,'${safeName}','${sets.replace(/'/g,"\\'")}','${note.replace(/'/g,"\\'")}')">应用</button></div>`;
+  });
+  // Restore newlines as <br>
+  html = html.replace(/\n/g,'<br>');
+  return html;
+}
+
+// Init chat on enter
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.activeElement?.id==='chat-input'){
+    sendMsg();
+  }
+});
+
+// Update check UI after render
+setTimeout(updateCheckUI,100);
+
+
+
+// Auto-hide API settings if key exists and is non-empty
+function initApiSettings(){
+  const key = localStorage.getItem('ds-key');
+  const card = document.getElementById('api-settings-card');
+  const toggle = document.getElementById('api-toggle-btn');
+  if(key && key.trim().length > 10){
+    card.classList.add('hidden-api');
+    toggle.style.display = 'block';
+  }
+}
+function showApiSettings(){
+  const card = document.getElementById('api-settings-card');
+  card.classList.remove('hidden-api');
+  document.getElementById('api-toggle-btn').style.display = 'none';
+  document.getElementById('apikey-input').focus();
+}
+function onApiError(){
+  // Show API settings on auth error
+  const card = document.getElementById('api-settings-card');
+  card.classList.remove('hidden-api');
+  document.getElementById('api-toggle-btn').style.display = 'none';
+}
+
+// Call on load
+setTimeout(initApiSettings, 200);
+
+
+render(getTodayKey());
+setTimeout(()=>{renderWeightLog();renderMoodButtons();renderDietOverrideAlert();},200);
+initApiKey();
+renderChatHistory();
+
+
+// ===================== SERVICE WORKER (offline cache) =====================
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/今日安排.html?sw=1').catch(()=>{});
+  // Self-caching: register a blob worker that caches this page
+  const cacheName = 'today-plan-v1';
+  const cachePage = async ()=>{
+    const cache = await caches.open(cacheName);
+    await cache.add(location.href);
+  };
+  // Try to cache on first load
+  window.addEventListener('load',()=>{
+    if(navigator.onLine) cachePage().catch(()=>{});
+  });
+  // Intercept fetch with the file itself
+  if(!navigator.serviceWorker.controller){
+    const swCode = `
+      const CACHE = 'today-plan-v1';
+      self.addEventListener('install',e=>{self.skipWaiting()});
+      self.addEventListener('activate',e=>{e.waitUntil(clients.claim())});
+      self.addEventListener('fetch',e=>{
+        if(e.request.url.includes('今日安排')){
+          e.respondWith(
+            caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{
+              return caches.open(CACHE).then(c=>{c.put(e.request,resp.clone());return resp});
+            }))
+          );
+        }
+      });
+    `;
+    const blob = new Blob([swCode],{type:'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+}
+
+</script>
+
+<!-- Chat FAB -->
+<button class="chat-fab" onclick="toggleChat()" title="AI助手">💬</button>
+
+<!-- Chat Overlay -->
+<div class="chat-overlay" id="chat-overlay">
+  <div class="chat-header">
+    <h2>🤖 AI 助手</h2>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="chat-msg ai">你好！我是你的减脂备考助手。可以问我训练、饮食、康复、考研相关问题。先在「打卡」页面设置DeepSeek API Key。</div>
+  </div>
+  <div class="chat-input-wrap">
+    <input type="text" id="chat-input" placeholder="输入问题或反馈...">
+    <button onclick="sendMsg()">➤</button>
+  </div>
+</div>
+
+</body>
+</html>
