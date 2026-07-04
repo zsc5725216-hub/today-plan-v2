@@ -127,6 +127,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Ne
 .chat-overlay.open{transform:translateY(0)}
 .chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);padding-top:calc(14px + env(safe-area-inset-top))}
 .chat-header h2{font-size:17px;font-weight:600}
+
+.chat-new{background:none;border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;padding:4px 10px;font-family:inherit;white-space:nowrap;font-weight:500}
+.chat-new:active{background:var(--accent);color:#fff}
 .chat-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);padding:4px}
 .chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .chat-msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;word-break:break-word}
@@ -1034,6 +1037,13 @@ function saveChatHistory(history){
   localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed));
 }
 
+function clearChat(){
+  if(!confirm('确定开启新对话？当前对话记录将被清除。'))return;
+  localStorage.removeItem(CHAT_HISTORY_KEY);
+  const msgs=document.getElementById('chat-msgs');
+  msgs.innerHTML='<div class="chat-msg ai">🆕 新对话已开启！我是你的减脂备考助手💪</div>';
+}
+
 function renderChatHistory(){
   const history = loadChatHistory();
   const msgs = document.getElementById('chat-msgs');
@@ -1303,6 +1313,7 @@ if('serviceWorker' in navigator){
 <div class="chat-overlay" id="chat-overlay">
   <div class="chat-header">
     <h2>🤖 AI 助手</h2>
+    <button class="chat-new" onclick="clearChat()">＋ 新对话</button>
     <button class="chat-close" onclick="toggleChat()">✕</button>
   </div>
   <div class="chat-msgs" id="chat-msgs">
