@@ -917,8 +917,6 @@ if(window.visualViewport){
       if(msgs){
         msgs.style.paddingBottom=(window.visualViewport.height - window.visualViewport.offsetTop + 20)+'px';
         msgs.scrollTop=msgs.scrollHeight;
-  // Dismiss keyboard on send for better UX
-  document.getElementById('chat-input').blur();
       }
     }
   });
@@ -1043,7 +1041,7 @@ function renderChatReply(text){
 
 // Init chat on enter
 document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&document.activeElement?.id==='chat-input'){
+  if(e.key==='Enter'&&!e.isComposing&&document.activeElement?.id==='chat-input'){
     sendMsg();
   }
 });
