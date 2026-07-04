@@ -508,15 +508,6 @@ function render(key){
   html += `</div></div>`; // close s-ci
 
   // === Settings (API key) ===
-  html += `<div class="card" style="margin-top:10px"><h3>👤 身体数据</h3>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">体重kg</label><input id="prof-weight" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().weight||115)}" step="0.1"></div>
-      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">目标kg</label><input id="prof-goal" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().goalWeight||90)}" step="0.1"></div>
-      <div style="flex:1;min-width:70px"><label style="font-size:10px;color:var(--sub)">体脂%</label><input id="prof-bf" type="number" style="width:100%;padding:7px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center" value="${(loadProfile().goalBf||18)}"></div>
-    </div>
-    <button onclick="saveProfileUI()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;cursor:pointer;width:100%;font-family:inherit">💾 保存身体数据</button>
-    <div style="font-size:10px;color:var(--sub);margin-top:4px">AI会根据这些数据自动调整方案。也可以用 /profile weight 112 命令更新。</div>
-  </div>`;
   html += `<div class="card api-settings" id="api-settings-card" style="margin-top:10px;position:relative"><button class="api-toggle" onclick="showApiSettings()" title="API设置" id="api-toggle-btn" style="display:none">⚙️</button><h3>⚙️ DeepSeek API</h3><div class="settings-row"><input type="password" id="apikey-input" placeholder="输入DeepSeek API Key" value="${localStorage.getItem('ds-key')||''}" placeholder="输入你的DeepSeek API Key"><button onclick="saveApiKey()">保存</button></div><div style="font-size:11px;color:var(--sub);margin-top:6px">获取: platform.deepseek.com → API Keys</div></div>`;
 
   document.getElementById('ct').innerHTML = html;
@@ -542,24 +533,6 @@ function saveChecks(c){localStorage.setItem('checks',JSON.stringify(c))}
 
 // ===================== TRAINING LOG (localStorage) =====================
 function loadTrainingLogs(){try{return JSON.parse(localStorage.getItem('training-logs')||'{}')}catch(e){return{}}}
-function saveTrainingLogs(logs){localStorage.setItem('training-logs',JSON.stringify(logs))}
-// ===================== USER PROFILE (localStorage) =====================
-function loadProfile(){try{return JSON.parse(localStorage.getItem('user-profile')||'{}')}catch(e){return{}}}
-function saveProfile(p){localStorage.setItem('user-profile',JSON.stringify(p))}
-function getDefaultProfile(){return{weight:115,height:187,age:23,goalWeight:90,goalBf:18,updated:getTodayStr()}}
-function buildProfileContext(){
-  const p=loadProfile();
-  if(!p.weight){const d=getDefaultProfile();saveProfile(d);return buildProfileContext();}
-  return `【基本信息】男，${p.age||23}岁，${p.height||187}cm，${p.weight}kg，目标${p.goalWeight||90}kg/体脂${p.goalBf||18}%。`;
-}
-function updateProfile(key,val){
-  const p=loadProfile();
-  const num=parseFloat(val);
-  if(!isNaN(num))p[key]=num;
-  else if(val)p[key]=val;
-  p.updated=getTodayStr();
-  saveProfile(p);
-}
 function logExercise(){
   const sel=document.getElementById('log-exercise');
   const name=sel.value;if(!name)return;
@@ -606,16 +579,6 @@ function renderTrainingLog(){
 function loadWeightLogs(){try{return JSON.parse(localStorage.getItem('weight-logs')||'{}')}catch(e){return{}}}
 function saveWeightLogs(logs){localStorage.setItem('weight-logs',JSON.stringify(logs))}
 
-function saveProfileUI(){
-  const w=parseFloat(document.getElementById('prof-weight').value);
-  const g=parseFloat(document.getElementById('prof-goal').value);
-  const b=parseFloat(document.getElementById('prof-bf').value);
-  if(w)updateProfile('weight',w);
-  if(g)updateProfile('goalWeight',g);
-  if(b)updateProfile('goalBf',b);
-  alert('身体数据已保存！AI将在下次对话中使用最新数据。');
-}
-
 function logWeight(){
   const input=document.getElementById('weight-input');
   const val=parseFloat(input.value);
@@ -624,7 +587,6 @@ function logWeight(){
   const logs=loadWeightLogs();
   logs[today]=Math.round(val*10)/10;
   saveWeightLogs(logs);
-  updateProfile('weight',val);
   input.value='';
   renderWeightLog();
   triggerAnalysis('体重更新:'+val+'kg');
@@ -870,12 +832,13 @@ function saveApiKey(){
 
 // ===================== AI CHAT =====================
 function buildSystemPrompt(){
-  const p=loadProfile();
-  if(!p.weight){const d=getDefaultProfile();saveProfile(d);}
-  const profile=buildProfileContext();
+  // Get latest weight from weight logs
+  const wLogs=loadWeightLogs();
+  const wDates=Object.keys(wLogs).sort();
+  const curWeight=wDates.length>0?wLogs[wDates[wDates.length-1]]:115;
   return `你是减脂备考私人助手。用户完整档案：
 
-${profile}
+【基本信息】男，23岁，187cm，${curWeight}kg，目标90kg/体脂18%。
 
 
 【考试】数二+英二+408计算机考研，12月二战。通勤自习室30分钟。
