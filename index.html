@@ -153,6 +153,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Ne
 .ex.ai-opt .exnote{color:var(--purple);font-weight:500}
 
 /* Training Log */
+
+.log-form-multi{display:flex;flex-direction:column;gap:5px}.log-ex-row{border:1px solid var(--border);border-radius:10px;padding:8px;background:var(--bg)}.log-ex-name{font-size:12px;font-weight:600;margin-bottom:4px}.log-ex-inputs{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.log-ex-inputs input{padding:5px 4px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:16px;font-family:inherit;text-align:center;min-width:0}.log-ex-inputs input[type=number]{width:45px}.log-ex-inputs input[placeholder=备注]{width:55px}.log-ex-inputs .btn-sm{padding:5px 8px;font-size:11px;flex-shrink:0}
 .log-form{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
 .log-form select,.log-form input{padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;font-family:inherit}
 .log-form select{flex:1;min-width:100px}
@@ -497,11 +499,24 @@ function render(key){
     });
   }
   html += `</div>`;
-  // Log form - only show if today is training day
+  // Log form - show all exercises with individual inputs
   if(d.tr){
-    html += `<div class="log-form"><select id="log-exercise">`;
-    d.tr.ex.forEach(ex=>{if(!ex.n.startsWith('--'))html+=`<option value="${ex.n}">${ex.n}</option>`;});
-    html += `</select><input type="number" id="log-weight" placeholder="重量kg"><input type="number" id="log-reps" placeholder="次数"><input type="number" id="log-sets" placeholder="组数"><input type="number" id="log-rpe" placeholder="RPE" min="1" max="10"><input id="log-notes" placeholder="备注" style="width:80px"><button class="btn-sm" onclick="logExercise()">记录</button></div>`;
+    html += `<div class="log-form-multi">`;
+    d.tr.ex.forEach((ex,i)=>{
+      if(ex.n.startsWith('--'))return;
+      html += `<div class="log-ex-row">
+        <div class="log-ex-name">${ex.n}</div>
+        <div class="log-ex-inputs">
+          <input type="number" id="lw${i}" placeholder="重量" step="0.5">
+          <input type="number" id="lr${i}" placeholder="次数">
+          <input type="number" id="ls${i}" placeholder="组数">
+          <input type="number" id="lp${i}" placeholder="RPE" min="1" max="10">
+          <input id="ln${i}" placeholder="备注" style="width:70px">
+          <button class="btn-sm" onclick="logExerciseIdx(${i})">记</button>
+        </div>
+      </div>`;
+    });
+    html += `<button class="btn-sm" onclick="logAllExercises()" style="width:100%;margin-top:6px;padding:10px;font-size:14px">📝 全部记录</button></div>`;
   }else{
     html += `<div class="log-empty">💤 今天休息日，无需训练记录</div>`;
   }
@@ -527,28 +542,61 @@ function render(key){
 }
 
 
-function getTodayStr(){return new Date().toISOString().slice(0,10)}
+function getTodayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function loadChecks(){try{return JSON.parse(localStorage.getItem('checks')||'{}')}catch(e){return{}}}
 function saveChecks(c){localStorage.setItem('checks',JSON.stringify(c))}
 
 // ===================== TRAINING LOG (localStorage) =====================
 function loadTrainingLogs(){try{return JSON.parse(localStorage.getItem('training-logs')||'{}')}catch(e){return{}}}
-function logExercise(){
-  const sel=document.getElementById('log-exercise');
-  const name=sel.value;if(!name)return;
-  const weight=document.getElementById('log-weight').value||'';
-  const reps=document.getElementById('log-reps').value||'';
-  const sets=document.getElementById('log-sets').value||'';
-  const rpe=document.getElementById('log-rpe').value||'';
-  const notes=document.getElementById('log-notes').value||'';
+function logExerciseIdx(i){
+  const weight=document.getElementById('lw'+i).value||'';
+  const reps=document.getElementById('lr'+i).value||'';
+  const sets=document.getElementById('ls'+i).value||'';
+  const rpe=document.getElementById('lp'+i).value||'';
+  const notes=document.getElementById('ln'+i).value||'';
+  if(!weight&&!reps&&!sets)return;
+  // Get exercise name from the rendered DOM
+  const nameEl=document.querySelectorAll('.log-ex-name')[i];
+  if(!nameEl)return;
+  const name=nameEl.textContent;
   const today=getTodayStr();
   const logs=loadTrainingLogs();
   if(!logs[today])logs[today]={exercises:[]};
   logs[today].exercises.push({name,weight,reps,sets,rpe,notes,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
   saveTrainingLogs(logs);
   renderTrainingLog();
-  // Clear inputs
-  ['log-weight','log-reps','log-sets','log-rpe','log-notes'].forEach(id=>document.getElementById(id).value='');
+  triggerAnalysis('训练记录更新');
+  // Clear this row's inputs
+  ['lw'+i,'lr'+i,'ls'+i,'lp'+i,'ln'+i].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Highlight the button briefly
+  const btns=document.querySelectorAll('.log-ex-row .btn-sm');
+  if(btns[i]){btns[i].textContent='✓';btns[i].style.background='#4caf50';setTimeout(()=>{btns[i].textContent='记';btns[i].style.background='';},800);}
+}
+function logAllExercises(){
+  const rows=document.querySelectorAll('.log-ex-row');
+  const today=getTodayStr();
+  const logs=loadTrainingLogs();
+  let count=0;
+  rows.forEach((row,i)=>{
+    const w=document.getElementById('lw'+i);
+    const r=document.getElementById('lr'+i);
+    const s=document.getElementById('ls'+i);
+    if(w&&r&&s&&(w.value||r.value||s.value)){
+      const name=row.querySelector('.log-ex-name').textContent;
+      const p=document.getElementById('lp'+i);
+      const n=document.getElementById('ln'+i);
+      if(!logs[today])logs[today]={exercises:[]};
+      logs[today].exercises.push({name,weight:w.value||'',reps:r.value||'',sets:s.value||'',rpe:p?p.value||'':'',notes:n?n.value||'':'',time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+      ['lw'+i,'lr'+i,'ls'+i,'lp'+i,'ln'+i].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      count++;
+    }
+  });
+  if(count>0){
+    saveTrainingLogs(logs);
+    renderTrainingLog();
+    triggerAnalysis('训练记录更新');
+    alert('已记录 '+count+' 个动作');
+  }
 }
 function deleteLogEntry(idx){
   const today=getTodayStr();
@@ -1001,6 +1049,28 @@ function saveChatHistory(history){
   localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmed));
 }
 
+
+function showAnalysisHistory(){
+  const overlay=document.getElementById('chat-overlay');
+  if(!overlay.classList.contains('open'))toggleChat();
+  const msgs=document.getElementById('chat-msgs');
+  const decisions=loadDecisions();
+  if(decisions.length===0){
+    msgs.innerHTML='<div class="chat-msg ai">📋 暂无AI分析记录。记录体重/心情或与AI对话后自动生成。</div>';
+  }else{
+    let html='<div class="chat-msg ai" style="font-size:12px"><b>📋 AI 分析历史</b><br><br>';
+    decisions.slice(-20).reverse().forEach(d=>{
+      const t=new Date(d.time);
+      const ts=(t.getMonth()+1)+'/'+t.getDate()+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+      const icon=d.type.startsWith('auto')?'🤖':d.type==='训练调整'?'🏋️':'🍽️';
+      html+=`<div style="margin-bottom:8px;padding:6px 8px;background:var(--bg);border-radius:8px"><b>${icon} ${ts}</b> ${d.detail.replace(/</g,'&lt;')}</div>`;
+    });
+    html+='</div>';
+    msgs.innerHTML=html;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
 function clearChat(){
   if(!confirm('确定开启新对话？当前对话记录将被清除。'))return;
   localStorage.removeItem(CHAT_HISTORY_KEY);
@@ -1278,6 +1348,7 @@ if('serviceWorker' in navigator){
   <div class="chat-header">
     <h2>🤖 AI 助手</h2>
     <button class="chat-new" onclick="clearChat()">＋ 新对话</button>
+    <button class="chat-new" onclick="showAnalysisHistory()" style="border-color:var(--purple);color:var(--purple)">📋 分析记录</button>
     <button class="chat-close" onclick="toggleChat()">✕</button>
   </div>
   <div class="chat-msgs" id="chat-msgs">
