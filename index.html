@@ -743,6 +743,9 @@ function applyCommandFromChat(btn,name,sets,note){
   btn.classList.add('done');
   btn.disabled=true;
   if(currentKey)render(currentKey);
+  renderDietOverrideAlert();
+  updateCheckUI();
+  updateWeekGrid();
 }
 
 function clearAllOverrides(){
@@ -799,6 +802,8 @@ function applyDietCommandFromChat(btn,calories,protein,note){
   btn.disabled=true;
   if(currentKey)render(currentKey);
   renderDietOverrideAlert();
+  updateCheckUI();
+  updateWeekGrid();
 }
 
 function clearDietOverrides(){
@@ -823,7 +828,8 @@ function renderDietOverrideAlert(){
 function toggleCheck(id){
   const checks=loadChecks();
   const today=getTodayStr();
-  if(!checks[today])checks[today]={};
+  // Only modify today - defensive check
+  if(!checks[today]||typeof checks[today]!=='object')checks[today]={};
   checks[today][id]=!checks[today][id];
   saveChecks(checks);
   updateCheckUI();
@@ -960,6 +966,7 @@ function buildSystemPrompt(){
 // ===================== AUTO ANALYSIS =====================
 let analysisTimeout=null;
 function triggerAnalysis(reason){
+  bannerDismissed=false;
   const key=localStorage.getItem('ds-key');
   if(!key)return;
   if(analysisTimeout)clearTimeout(analysisTimeout);
@@ -989,25 +996,27 @@ async function runSilentAnalysis(reason,key){
     if(updates.length>0)applied.push(...updates.map(u=>u.name+' → '+u.sets));
     const diets=parseDietCommand(reply);
     if(diets.length>0)applied.push('饮食调整:'+diets[0].calories+'kcal');
-    // Save decision
+    // Save decision (parseAICommand/parseDietCommand already renders if changes applied)
     if(applied.length>0){
       saveDecision('auto-'+reason,applied.join(', '));
-      // Re-render to show changes
-      if(currentKey)render(currentKey);
       renderDietOverrideAlert();
+      updateCheckUI();
+      updateWeekGrid();
     }
     // Show notification banner
     showInsightBanner(reply,applied.length>0);
   }catch(e){}
 }
+let bannerDismissed=false;
 function showInsightBanner(text,hasChanges){
+  if(bannerDismissed)return;
   const existing=document.getElementById('insight-banner');
-  if(existing)existing.remove();
+  if(existing)return;
   const banner=document.createElement('div');
   banner.id='insight-banner';
   banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:300;background:var(--card);padding:12px 16px;font-size:13px;line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.15);border-bottom:2px solid var(--accent);animation:slideDown .3s ease;max-width:500px;margin:0 auto;border-radius:0 0 14px 14px;';
   const cleanText=text.replace(/\/update\s+\S+\s+\S+\s+.+/g,'').replace(/\/diet\s+calories\s+\d+\s+protein\s+\d+\s+.+/g,'').trim();
-  banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:8px"><span>🤖</span><div><div style="font-weight:600;margin-bottom:4px">AI 自动分析</div><div>'+cleanText.slice(0,300).replace(/\n/g,'<br>')+(cleanText.length>300?'...':'')+'</div>'+(hasChanges?'<div style="margin-top:6px;font-size:11px;color:var(--accent);font-weight:600">✅ 已自动应用方案调整</div>':'')+'</div><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--sub);padding:0;line-height:1">✕</button></div>';
+  banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:8px"><span>🤖</span><div><div style="font-weight:600;margin-bottom:4px">AI 自动分析</div><div>'+cleanText.slice(0,300).replace(/\n/g,'<br>')+(cleanText.length>300?'...':'')+'</div>'+(hasChanges?'<div style="margin-top:6px;font-size:11px;color:var(--accent);font-weight:600">✅ 已自动应用方案调整</div>':'')+'</div><button onclick="bannerDismissed=true;this.parentElement.parentElement.remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--sub);padding:0;line-height:1">✕</button></div>';
   document.body.prepend(banner);
   setTimeout(()=>{if(banner.parentElement)banner.remove();},12000);
 }
