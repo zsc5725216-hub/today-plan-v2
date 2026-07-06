@@ -859,6 +859,8 @@ function getDateForDay(dayIndex){
   return toLocalDateStr(monday);
 }
 function isDateDone(dateStr){
+  // Don't mark future dates as done
+  if(dateStr>getTodayStr())return false;
   const checks=loadChecks();
   const td=checks[dateStr]||{};
   const done=Object.values(td).filter(Boolean).length;
