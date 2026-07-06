@@ -542,7 +542,12 @@ function render(key){
 }
 
 
-function getTodayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+
+function toLocalDateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function getTodayStr(){return toLocalDateStr(new Date())}
 function loadChecks(){try{return JSON.parse(localStorage.getItem('checks')||'{}')}catch(e){return{}}}
 function saveChecks(c){localStorage.setItem('checks',JSON.stringify(c))}
 
@@ -835,7 +840,7 @@ function getDateForDay(dayIndex){
   const day=now.getDay()||7;
   const monday=new Date(now);
   monday.setDate(now.getDate()-(day-1)+dayIndex);
-  return monday.toISOString().slice(0,10);
+  return toLocalDateStr(monday);
 }
 function isDateDone(dateStr){
   const checks=loadChecks();
@@ -850,7 +855,7 @@ function getStats(){
   // Count streak
   const d=new Date();
   while(true){
-    const ds=d.toISOString().slice(0,10);
+    const ds=toLocalDateStr(d);
     if(isDateDone(ds)){streak++;d.setDate(d.getDate()-1)}
     else break;
   }
