@@ -538,6 +538,7 @@ function render(key){
 
   // Show first tab by default
   showTab('sch');
+  setTimeout(updateWeekGrid,150);
   setTimeout(()=>{renderWeightLog();renderMoodButtons();renderDietOverrideAlert();},50);
 }
 
@@ -689,6 +690,7 @@ function logMood(mood){
   logs[today]=mood;
   saveMoodLogs(logs);
   renderMoodButtons();
+  updateWeekGrid();
   const moodNames={good:'精力好',ok:'一般',tired:'很累'};
   triggerAnalysis('心情更新:'+moodNames[mood]);
 }
@@ -825,6 +827,7 @@ function toggleCheck(id){
   checks[today][id]=!checks[today][id];
   saveChecks(checks);
   updateCheckUI();
+  updateWeekGrid();
 }
 function updateCheckUI(){
   const checks=loadChecks();
@@ -834,6 +837,13 @@ function updateCheckUI(){
     const el=document.getElementById('ci-'+id);
     if(el)el.classList.toggle('done',!!td[id]);
   });
+}
+function updateWeekGrid(){
+  const dots=document.querySelectorAll('.wk-dot');
+  for(let i=0;i<dots.length;i++){
+    const date=getDateForDay(i);
+    dots[i].classList.toggle('done',isDateDone(date));
+  }
 }
 function getDateForDay(dayIndex){
   const now=new Date();
